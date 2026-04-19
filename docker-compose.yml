@@ -5,8 +5,10 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-}
       PARLGOV_DATA_DIR: /app/data/parlgov
       CLEA_DATA_DIR: /app/data/clea
-    # appuser в образе = uid 1000; иначе запись clea_aggregated.duckdb даст Permission denied.
+    # appuser в образе = uid 1000; иначе запись .duckdb даст Permission denied.
+    # На хосте: mkdir -p data/parlgov data/clea && chown -R 1000:1000 data/
     volumes:
+      - ./data/parlgov:/app/data/parlgov
       - ./data/clea:/app/data/clea
     expose:
       - "8000"

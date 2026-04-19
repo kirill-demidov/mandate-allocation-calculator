@@ -1,8 +1,14 @@
-"""Единая таблица справочника в том же DuckDB, что и ParlGov (ref_party_election)."""
+"""Единая таблица ref_party_election в parlgov.duckdb.
+
+CLEA добавляется через DuckDB ATTACH (read-only) из clea_aggregated.duckdb,
+поэтому каждый источник держит эксклюзивный write-lock только к своему файлу.
+"""
 
 from __future__ import annotations
 
 import logging
+import os
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -11,20 +17,23 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _has_parliament_elections(con: duckdb.DuckDBPyConnection) -> bool:
+def _clea_db_path() -> Path | None:
+    """Путь к clea_aggregated.duckdb (только для ATTACH в parlgov-соединении)."""
+    raw = os.getenv("CLEA_DUCKDB_PATH", "").strip()
+    if raw:
+        p = Path(raw)
+        return p if p.is_file() else None
+    clea_dir = os.getenv("CLEA_DATA_DIR", "").strip()
+    if clea_dir:
+        p = Path(clea_dir) / "clea_aggregated.duckdb"
+        return p if p.is_file() else None
+    return None
+
+
+def _has_view(con: duckdb.DuckDBPyConnection, name: str) -> bool:
     r = con.execute(
         """
         SELECT COUNT(*) FROM information_schema.views
-        WHERE table_schema = 'main' AND table_name = 'parliament_elections'
-        """
-    ).fetchone()
-    return r is not None and int(r[0]) > 0
-
-
-def _has_table(con: duckdb.DuckDBPyConnection, name: str) -> bool:
-    r = con.execute(
-        """
-        SELECT COUNT(*) FROM information_schema.tables
         WHERE table_schema = 'main' AND table_name = ?
         """,
         [name],
@@ -34,11 +43,15 @@ def _has_table(con: duckdb.DuckDBPyConnection, name: str) -> bool:
 
 def rebuild_ref_party_election(con: duckdb.DuckDBPyConnection) -> None:
     """
-    Создаёт / перезаписывает ref_party_election: строка = выборы × партия.
-    Источники: parlgov (если есть view parliament_elections), clea (если есть clea_party_national).
+    Создаёт / перезаписывает ref_party_election в уже открытом соединении parlgov.duckdb.
+
+    ParlGov-данные берутся из view parliament_elections / table election_meta (в con).
+    CLEA-данные (если clea_aggregated.duckdb найден) подключаются через ATTACH READ_ONLY;
+    после вставки — DETACH. Каждый файл остаётся под эксклюзивным write-lock своего владельца.
     """
     parts: list[str] = []
-    if _has_parliament_elections(con):
+
+    if _has_view(con, "parliament_elections"):
         parts.append(
             """
             SELECT
@@ -54,13 +67,11 @@ def rebuild_ref_party_election(con: duckdb.DuckDBPyConnection) -> None:
                 )
               ) AS party_name,
               CASE
-                WHEN TRY_CAST(em.votes_valid AS BIGINT) IS NOT NULL
+                WHEN TRY_CAST(em.votes_valid AS DOUBLE) IS NOT NULL
                      AND pe.vote_share IS NOT NULL
                   THEN CAST(
-                    ROUND(
-                      CAST(TRY_CAST(em.votes_valid AS DOUBLE) AS DOUBLE)
-                      * pe.vote_share / 100.0
-                    ) AS BIGINT
+                    ROUND(TRY_CAST(em.votes_valid AS DOUBLE) * pe.vote_share / 100.0)
+                    AS BIGINT
                   )
                 ELSE CAST(NULL AS BIGINT)
               END AS votes_absolute,
@@ -73,7 +84,17 @@ def rebuild_ref_party_election(con: duckdb.DuckDBPyConnection) -> None:
               ON CAST(em.id AS BIGINT) = pe.election_id
             """
         )
-    if _has_table(con, "clea_party_national") and _has_table(con, "clea_elections"):
+
+    clea_path = _clea_db_path()
+    clea_attached = False
+    if clea_path is not None:
+        try:
+            con.execute(f"ATTACH '{clea_path}' AS clea_ref (READ_ONLY)")
+            clea_attached = True
+        except Exception as exc:
+            logger.warning("ref_party_election: не удалось ATTACH CLEA (%s): %s", clea_path, exc)
+
+    if clea_attached:
         parts.append(
             """
             SELECT
@@ -86,43 +107,43 @@ def rebuild_ref_party_election(con: duckdb.DuckDBPyConnection) -> None:
               pn.seats_recorded AS seats,
               CAST('clea' AS VARCHAR) AS source,
               e.threshold_percent AS threshold_pct
-            FROM clea_party_national pn
-            INNER JOIN clea_elections e ON e.election_key = pn.election_key
+            FROM clea_ref.clea_party_national pn
+            INNER JOIN clea_ref.clea_elections e ON e.election_key = pn.election_key
             WHERE pn.party_name IS NOT NULL AND TRIM(pn.party_name) <> ''
             """
         )
-    if not parts:
-        con.execute(
-            """
-            CREATE OR REPLACE TABLE ref_party_election (
-              election_key VARCHAR,
-              election_date DATE,
-              election_label VARCHAR,
-              party_name VARCHAR,
-              votes_absolute BIGINT,
-              vote_share_pct DOUBLE,
-              seats INTEGER,
-              source VARCHAR,
-              threshold_pct DOUBLE
-            )
-            SELECT
-              CAST(NULL AS VARCHAR), CAST(NULL AS DATE), CAST(NULL AS VARCHAR),
-              CAST(NULL AS VARCHAR), CAST(NULL AS BIGINT), CAST(NULL AS DOUBLE),
-              CAST(NULL AS INTEGER), CAST(NULL AS VARCHAR), CAST(NULL AS DOUBLE)
-            WHERE FALSE
-            """
-        )
-        logger.info("ref_party_election: empty (no ParlGov view and no CLEA tables)")
-        return
 
-    union_sql = " UNION ALL ".join(parts)
-    con.execute(
-        f"""
-        CREATE OR REPLACE TABLE ref_party_election AS
-        SELECT * FROM (
-          {union_sql}
-        ) u
-        """
-    )
-    n = con.execute("SELECT COUNT(*) FROM ref_party_election").fetchone()[0]
-    logger.info("ref_party_election rebuilt: %s rows", int(n))
+    empty_ddl = """
+        CREATE OR REPLACE TABLE ref_party_election (
+          election_key VARCHAR,
+          election_date DATE,
+          election_label VARCHAR,
+          party_name VARCHAR,
+          votes_absolute BIGINT,
+          vote_share_pct DOUBLE,
+          seats INTEGER,
+          source VARCHAR,
+          threshold_pct DOUBLE
+        )
+    """
+
+    try:
+        if not parts:
+            con.execute(empty_ddl + " SELECT * FROM (SELECT CAST(NULL AS VARCHAR), CAST(NULL AS DATE), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS BIGINT), CAST(NULL AS DOUBLE), CAST(NULL AS INTEGER), CAST(NULL AS VARCHAR), CAST(NULL AS DOUBLE)) t WHERE FALSE")
+            logger.info("ref_party_election: empty (no ParlGov view and no CLEA)")
+        else:
+            union_sql = " UNION ALL ".join(parts)
+            con.execute(
+                f"""
+                CREATE OR REPLACE TABLE ref_party_election AS
+                SELECT * FROM ({union_sql}) u
+                """
+            )
+            n = con.execute("SELECT COUNT(*) FROM ref_party_election").fetchone()[0]
+            logger.info("ref_party_election rebuilt: %s rows", int(n))
+    finally:
+        if clea_attached:
+            try:
+                con.execute("DETACH clea_ref")
+            except Exception:
+                pass

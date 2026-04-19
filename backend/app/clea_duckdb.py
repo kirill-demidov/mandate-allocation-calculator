@@ -55,14 +55,6 @@ def _data_dir() -> Path:
     return Path(os.getenv("TMPDIR", "/tmp")) / "clea"
 
 
-def _parlgov_duckdb_path() -> Path | None:
-    """Если задан каталог ParlGov — CLEA пишет в тот же файл (единая DuckDB)."""
-    raw = os.getenv("PARLGOV_DATA_DIR", "").strip()
-    if raw:
-        return Path(raw) / "parlgov.duckdb"
-    return None
-
-
 def _csv_path() -> Path | None:
     p = os.getenv("CLEA_CSV_PATH", "").strip()
     if p:
@@ -79,9 +71,6 @@ def _csv_path() -> Path | None:
 
 
 def _duckdb_out_path() -> Path:
-    merged = _parlgov_duckdb_path()
-    if merged is not None:
-        return merged
     raw = os.getenv("CLEA_DUCKDB_PATH", "").strip()
     if raw:
         return Path(raw)
