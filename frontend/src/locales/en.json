@@ -1,0 +1,158 @@
+{
+  "brand": "electoral-calc.org",
+  "nav": {
+    "landing": "About",
+    "app": "Calculator (%)",
+    "votes": "From vote totals"
+  },
+  "footer": "For learning and analysis—not an official tally or a legal election forecast.",
+  "footerAuthor": "Author:",
+  "footerGithub": "GitHub",
+  "footerContactIntro": "Questions, feedback, and ideas — email:",
+  "landingAuthorIntro": "Author:",
+  "landingAuthorGithub": "GitHub",
+  "landingAuthorContact": "Email:",
+  "landing": {
+    "title": "Five ways to turn the same votes into seats",
+    "lead": "Enter your percentages or raw vote totals, hit calculate, and see how Hare, Droop, Sainte-Laguë, D'Hondt, and Imperiali disagree—right in your browser, no sign-up, no cloud storage. Export to Excel when you need a slide or a footnote.",
+    "whatTitle": "What you do here",
+    "whatP1": "Add parties and vote shares in percent (or start from whole vote counts on a separate page), set how many seats you are splitting and the threshold in percent. You get five columns of seat counts plus short explanations of what each rule does.",
+    "whatP2": "We don’t store your numbers on the server—they stay in your tab until you close it. Handy for a story, a class, or a quick “what if we change the threshold?”.",
+    "whoTitle": "Who might use it",
+    "whoP": "Anyone who wants the same inputs compared side by side: reporters, students, teachers, curious voters.",
+    "methodsTitle": "The five rules—in one paragraph",
+    "methodsList": "Hare and Droop use quotas and remainders; Sainte-Laguë, D'Hondt, and Imperiali hand out seats one by one to whoever currently has the strongest votes-per-seat ratio. Longer notes and links live on the calculator page.",
+    "cta": "Work with percentages",
+    "ctaVotes": "I have vote counts, not %"
+  },
+  "votesForm": {
+    "title": "From raw votes to percentages—automatically",
+    "lead": "Use this page when your sheet says “party—votes”, not “party—percent”.",
+    "how": "Fill in seats, threshold, and each row: name plus vote count (whole numbers, zero or more). We convert votes to shares of the row total and send you to the main calculator to compare methods and export.",
+    "sectionParams": "Allocation parameters",
+    "sectionParties": "Parties and votes",
+    "mandates": "Number of mandates",
+    "threshold": "Electoral threshold (%)",
+    "votesHint": "The denominator uses only rows that have both a name and a vote count. Match the aggregation level (district, region, country, etc.) to the territory for which the mandate pool applies.",
+    "colParty": "Name",
+    "colVotes": "Votes",
+    "colPercent": "Share, %",
+    "previewTitle": "Preview: conversion to shares",
+    "previewTotal": "Sum of votes in rows: {{total}}",
+    "addParty": "Add row",
+    "remove": "Remove",
+    "submit": "Continue to method comparison",
+    "toCalcManual": "Calculator with manual %",
+    "errNeedParty": "Add at least one party with a name and vote count.",
+    "errTotalVotes": "The sum of votes must be greater than zero.",
+    "errMandates": "Enter a valid number of mandates (at least 1)."
+  },
+  "calc": {
+    "title": "Calculator",
+    "settings": "Parameters",
+    "mandates": "Number of mandates",
+    "threshold": "Electoral threshold (%)",
+    "parties": "Parties",
+    "partyName": "Name",
+    "votesPct": "Votes (%)",
+    "addParty": "Add party",
+    "remove": "Remove",
+    "calculate": "Calculate",
+    "export": "Export to Excel",
+    "sumVotes": "Total vote share",
+    "sumError": "Total vote share cannot exceed 100%.",
+    "needParty": "Add at least one party.",
+    "results": "Results",
+    "methodsHeading": "Method notes",
+    "methodLinksHeading": "Further reading",
+    "chartVotes": "Vote distribution (%)",
+    "chartMandates": "Mandates by method",
+    "fromVotesLink": "Enter from absolute vote totals (separate form)"
+  },
+  "methods": {
+    "hare": {
+      "title": "Hare quota",
+      "body": "Quota = valid votes / number of mandates. Each party receives the integer part of votes divided by the quota; remaining mandates go to the largest fractional remainders.\n\nPolitical science note: fairly proportional; large parties can receive slightly fewer seats than under strongly majoritarian divisor rules.",
+      "links": [
+        {
+          "label": "Wikipedia: Hare quota",
+          "href": "https://en.wikipedia.org/wiki/Hare_quota"
+        },
+        {
+          "label": "Wikipedia: largest remainder method",
+          "href": "https://en.wikipedia.org/wiki/Largest_remainder_method"
+        },
+        {
+          "label": "International IDEA — electoral system design",
+          "href": "https://www.idea.int/data-tools/data/electoral-system-design"
+        }
+      ]
+    },
+    "droop": {
+      "title": "Droop quota",
+      "body": "Quota = valid votes / (mandates + 1) + 1, then the same remainder logic as Hare.\n\nPolitical science note: common in STV contexts; often somewhat less favorable to very small parties than pure Hare.",
+      "links": [
+        {
+          "label": "Wikipedia: Droop quota",
+          "href": "https://en.wikipedia.org/wiki/Droop_quota"
+        },
+        {
+          "label": "Wikipedia: single transferable vote",
+          "href": "https://en.wikipedia.org/wiki/Single_transferable_vote"
+        }
+      ]
+    },
+    "sl": {
+      "title": "Sainte-Laguë",
+      "body": "Sequential allocation with divisors 1, 3, 5, 7, … — each time the highest vote-to-divisor ratio wins a seat.\n\nPolitical science note: often described as more neutral between large and small parties than D'Hondt; widely used in Nordic settings.",
+      "links": [
+        {
+          "label": "Wikipedia: Sainte-Laguë method",
+          "href": "https://en.wikipedia.org/wiki/Sainte-Lagu%C3%AB_method"
+        },
+        {
+          "label": "Wikipedia: divisor method",
+          "href": "https://en.wikipedia.org/wiki/Divisor_method"
+        }
+      ]
+    },
+    "dhondt": {
+      "title": "D'Hondt",
+      "body": "Sequential allocation with divisors 1, 2, 3, 4, …\n\nPolitical science note: common across Europe; modestly favors larger parties, which can help coalition stability.",
+      "links": [
+        {
+          "label": "Wikipedia: D'Hondt method",
+          "href": "https://en.wikipedia.org/wiki/D%27Hondt_method"
+        },
+        {
+          "label": "Wikipedia: highest averages method",
+          "href": "https://en.wikipedia.org/wiki/Highest_averages_method"
+        }
+      ]
+    },
+    "imp": {
+      "title": "Imperiali",
+      "body": "Divisors 2, 3, 4, 5, … — same logic as D'Hondt but with a stronger large-party tilt.\n\nPolitical science note: can under-represent small parties; comparatively rare in practice.",
+      "links": [
+        {
+          "label": "Wikipedia: Imperiali method",
+          "href": "https://en.wikipedia.org/wiki/Imperiali_method"
+        },
+        {
+          "label": "Wikipedia: divisor method",
+          "href": "https://en.wikipedia.org/wiki/Divisor_method"
+        }
+      ]
+    }
+  },
+  "table": {
+    "party": "Party",
+    "votes": "Votes (%)",
+    "hare": "Hare",
+    "droop": "Droop",
+    "sl": "Sainte-Laguë",
+    "dhondt": "D'Hondt",
+    "imp": "Imperiali",
+    "total": "Total"
+  }
+}

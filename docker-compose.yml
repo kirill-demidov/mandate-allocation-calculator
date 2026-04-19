@@ -1,0 +1,22 @@
+services:
+  backend:
+    build: ./backend
+    environment:
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+    expose:
+      - "8000"
+
+  caddy:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+      args:
+        VITE_GA_MEASUREMENT_ID: ${VITE_GA_MEASUREMENT_ID:-}
+    # По умолчанию только 127.0.0.1:9080 — не пересекается с nginx/apache на :80/:443 дроплета.
+    # Публичный доступ: CADDY_PUBLISH=0.0.0.0:80 (только если порт свободен) — см. README.
+    ports:
+      - "${CADDY_PUBLISH:-127.0.0.1:9080}:80"
+    environment:
+      DOMAIN: "${DOMAIN:-:80}"
+    depends_on:
+      - backend

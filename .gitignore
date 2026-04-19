@@ -1,3 +1,10 @@
 /venv_win/
 /~$мандаты.xlsx
 /file_excel/
+
+.env
+__pycache__/
+*.pyc
+node_modules/
+frontend/dist/
+.DS_Store
