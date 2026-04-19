@@ -112,14 +112,21 @@ APPROVED: 2026-04-19 | claude-sonnet-4-6
 
 ### 9.3. API (`backend/app/reference_api.py`)
 
-- `/api/reference/*` (статус, страны, выборы, деталь, префилл), `/api/reference/clea/*`, отдача файла DuckDB.
-- После обновления схемы CLEA на сервере/локально — **refresh** CLEA (или `force`).
+- `/api/reference/*` (статус, страны, классические выборы ParlGov, деталь, префилл), **`GET /api/reference/unified-elections`** — единый список из `ref_party_election`, **`GET /api/reference/duckdb`** — скачивание `parlgov.duckdb` (в ответе имя `reference.duckdb`).
+- `/api/reference/clea/*` — деталь, префилл, список по CLEA-файлу (совместимость); **`GET /api/reference/clea/duckdb`** — тот же файл CLEA или `reference.duckdb`, если путь совпал с объединённой выдачей (см. ниже).
+- После **`POST /api/reference/refresh`** сбрасываются кэш-соединения обоих store, чтобы не держать устаревший lock.
+
+### 9.3.1. Единая таблица `ref_party_election` (`backend/app/reference_unified.py`)
+
+- В **`parlgov.duckdb`** (соединение ParlGov) пересобирается таблица **`ref_party_election`**: строка = выборы × партия; колонки: дата, подпись (страна), партия, голоса, доля %, места, **`source`** (`parlgov` / `clea`), **`threshold_pct`** (у CLEA при наличии).
+- **CLEA не пишет в тот же файл**, что ParlGov (иначе два writer → SIGSEGV в `duckdb.so`). CLEA по-прежнему в **`clea_aggregated.duckdb`**; при сборке `ref_party_election` CLEA подключается через **`ATTACH ... (READ_ONLY)`** и затем **`DETACH`**.
 
 ### 9.4. Фронтенд
 
 - `frontend/src/pages/Reference.tsx`, `frontend/src/api/types.ts`, локали `ru.json` / `en.json`.
-- Две таблицы: ParlGov и CLEA; у CLEA — колонки всего мест, **проп. (MAG>1)**, **окр. (MAG≤1)**; у ParlGov в последних двух — «—» и сноска `parlgovSeatsTierFoot`.
-- В детализации — строки `seatsTierCleaSplit` / `seatsTierCleaNoMag` / `seatsTierParlgov`.
+- **Одна** таблица выборов по **`unified-elections`**: ключ/ID, дата, страна, действительные голоса (если есть в CLEA-сводке), места, **проп. / окр.** (заполнены только для строк CLEA с MAG), порог, **источник**, кнопка «Показать».
+- Сноска `parlgovSeatsTierFoot`; при отсутствии CSV CLEA — короткая подсказка `cleaOptionalHint` (без отдельной панели «CLEA отключён»).
+- В детализации — по-прежнему `seatsTierCleaSplit` / `seatsTierCleaNoMag` / `seatsTierParlgov`.
 
 ### 9.5. Оговорки
 
@@ -135,10 +142,10 @@ APPROVED: 2026-04-19 | claude-sonnet-4-6
 
 ## 10. Текущее состояние
 
-**Git / прод:** справочник ParlGov+CLEA, MAG, порог, разбивка мест, фикс суммы %, демо `data/clea/clea.csv`, volume в `docker-compose`, **`ctr_n_src`** в `clea_norm`. На дроплете после `git pull`: **`chown -R 1000:1000 data/clea`** при проблемах с правами на DuckDB.
+**Git / прод:** справочник ParlGov+CLEA, MAG, порог, разбивка мест, фикс суммы %, демо `data/clea/clea.csv`, в **`docker-compose`** тома **`./data/parlgov`** и **`./data/clea`** (uid приложения **1000**). На дроплете: **`chown -R 1000:1000 data/`** при `Permission denied` на `.duckdb`.
 
-**CLEA vs один DuckDB:** два файла (`parlgov.duckdb` и агрегат CLEA) — см. §9.5. «CLEA не подключён» в UI = нет CSV в `CLEA_DATA_DIR` (часто локальный dev без каталога).
+**Два файла DuckDB + ATTACH:** `parlgov.duckdb` (ParlGov + таблица **`ref_party_election`**) и **`clea_aggregated.duckdb`** (агрегат из CSV). Объединение в `ref_party_election` только через **READ_ONLY ATTACH**, без второго writer на `parlgov.duckdb` (избегание **exit 139 / segfault**).
 
-**Сделано при продолжении:** `backend/tests/test_calc_regression.py` (unittest) — суммы по методам, порог, эталон Хэйра 60/40 при 5 мандатах; workflow `.github/workflows/tests.yml` на push/PR.
+**Сделано при продолжении:** `backend/tests/test_calc_regression.py`; **`backend/tests/test_reference_unified.py`** — пересборка `ref_party_election` (ParlGov-only, CLEA-only, UNION + DETACH); workflow `.github/workflows/tests.yml` на push/PR.
 
-**Отложено:** эталон Бельгии в UI — нужны полные входные данные; опционально один общий DuckDB через `CLEA_DUCKDB_PATH`.
+**Отложено:** эталон Бельгии в UI — нужны полные входные данные CLEA/ParlGov для сценария.
