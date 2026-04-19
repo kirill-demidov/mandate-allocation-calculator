@@ -35,7 +35,8 @@ class TestReferenceUnified(unittest.TestCase):
               election_key VARCHAR,
               election_date DATE,
               country_label VARCHAR,
-              threshold_percent DOUBLE
+              threshold_percent DOUBLE,
+              seats_total INTEGER
             )
             """
         )
@@ -53,7 +54,7 @@ class TestReferenceUnified(unittest.TestCase):
         con.execute(
             """
             INSERT INTO clea_elections VALUES
-              ('1|2020|01|01', DATE '2020-01-01', 'Testland', 4.0)
+              ('1|2020|01|01', DATE '2020-01-01', 'Testland', 4.0, 20)
             """
         )
         con.execute(
