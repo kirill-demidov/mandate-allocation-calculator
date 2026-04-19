@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import threading
@@ -12,6 +13,20 @@ import duckdb
 import httpx
 
 from app.reference_unified import rebuild_ref_party_election
+
+
+def _load_thresholds() -> dict[str, float]:
+    p = Path(__file__).parent.parent / "data" / "thresholds.json"
+    if not p.is_file():
+        return {}
+    try:
+        data = json.loads(p.read_text())
+        return {k: float(v) for k, v in data.items() if not k.startswith("_") and v is not None}
+    except Exception:
+        return {}
+
+
+_THRESHOLDS: dict[str, float] = _load_thresholds()
 
 logger = logging.getLogger(__name__)
 
@@ -103,16 +118,17 @@ class ParlGovStore:
         if r is None or int(r[0]) == 0:
             rebuild_ref_party_election(con)
             return
-        has_seats_total = int(
-            con.execute(
+        needed = {"seats_total", "country_code"}
+        existing = {
+            row[0]
+            for row in con.execute(
                 """
-                SELECT COUNT(*) FROM information_schema.columns
+                SELECT column_name FROM information_schema.columns
                 WHERE table_schema = 'main' AND table_name = 'ref_party_election'
-                  AND column_name = 'seats_total'
                 """
-            ).fetchone()[0]
-        ) > 0
-        if not has_seats_total:
+            ).fetchall()
+        }
+        if not needed.issubset(existing):
             rebuild_ref_party_election(con)
 
     def _remote_newer_than_local(
@@ -411,7 +427,8 @@ class ParlGovStore:
               MAX(r.source) AS source,
               MAX(r.threshold_pct) AS threshold_pct,
               COUNT(*)::BIGINT AS n_parties,
-              MAX(r.seats_total) AS seats_total_ref
+              MAX(r.seats_total) AS seats_total_ref,
+              MAX(r.country_code) AS country_code
             FROM ref_party_election r
             WHERE {where_sql}
             GROUP BY r.election_key
@@ -432,7 +449,8 @@ class ParlGovStore:
               ce.votes_valid,
               COALESCE(ce.seats_total, b.seats_total_ref) AS seats_total,
               ce.seats_pr_tier,
-              ce.seats_constituency_tier
+              ce.seats_constituency_tier,
+              b.country_code
             FROM ({base_sql}) b
             LEFT JOIN clea_elections ce
               ON ce.election_key = b.election_key AND b.source = 'clea'
@@ -451,7 +469,8 @@ class ParlGovStore:
               CAST(NULL AS BIGINT) AS votes_valid,
               b.seats_total_ref AS seats_total,
               CAST(NULL AS INTEGER) AS seats_pr_tier,
-              CAST(NULL AS INTEGER) AS seats_constituency_tier
+              CAST(NULL AS INTEGER) AS seats_constituency_tier,
+              b.country_code
             FROM ({base_sql}) b
             ORDER BY b.election_date DESC NULLS LAST
             LIMIT ? OFFSET ?
@@ -468,6 +487,10 @@ class ParlGovStore:
                     parlgov_id = int(ek.split("|", 1)[1])
                 except (IndexError, ValueError):
                     parlgov_id = None
+            country_code = str(r[10]) if r[10] is not None else None
+            thr = float(r[4]) if r[4] is not None else None
+            if thr is None and country_code and country_code in _THRESHOLDS:
+                thr = _THRESHOLDS[country_code]
             out.append(
                 {
                     "election_key": ek,
@@ -475,7 +498,7 @@ class ParlGovStore:
                     "election_date": str(r[1]) if r[1] else "",
                     "election_label": r[2],
                     "source": r[3],
-                    "threshold_percent": float(r[4]) if r[4] is not None else None,
+                    "threshold_percent": thr,
                     "n_parties": int(r[5]) if r[5] is not None else 0,
                     "votes_valid": int(r[6]) if r[6] is not None else None,
                     "seats_total": int(r[7]) if r[7] is not None else None,

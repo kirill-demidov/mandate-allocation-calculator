@@ -79,7 +79,8 @@ def rebuild_ref_party_election(con: duckdb.DuckDBPyConnection) -> None:
               pe.seats AS seats,
               CAST('parlgov' AS VARCHAR) AS source,
               CAST(NULL AS DOUBLE) AS threshold_pct,
-              pe.seats_total AS seats_total
+              pe.seats_total AS seats_total,
+              pe.country_name_short AS country_code
             FROM parliament_elections pe
             LEFT JOIN election_meta em
               ON CAST(em.id AS BIGINT) = pe.election_id
@@ -108,7 +109,8 @@ def rebuild_ref_party_election(con: duckdb.DuckDBPyConnection) -> None:
               pn.seats_recorded AS seats,
               CAST('clea' AS VARCHAR) AS source,
               e.threshold_percent AS threshold_pct,
-              CAST(e.seats_total AS INTEGER) AS seats_total
+              CAST(e.seats_total AS INTEGER) AS seats_total,
+              CAST(NULL AS VARCHAR) AS country_code
             FROM clea_ref.clea_party_national pn
             INNER JOIN clea_ref.clea_elections e ON e.election_key = pn.election_key
             WHERE pn.party_name IS NOT NULL AND TRIM(pn.party_name) <> ''
@@ -126,7 +128,8 @@ def rebuild_ref_party_election(con: duckdb.DuckDBPyConnection) -> None:
           seats INTEGER,
           source VARCHAR,
           threshold_pct DOUBLE,
-          seats_total INTEGER
+          seats_total INTEGER,
+          country_code VARCHAR
         )
     """
 

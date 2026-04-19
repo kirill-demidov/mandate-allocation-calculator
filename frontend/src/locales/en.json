@@ -100,7 +100,10 @@
     "methodsList": "Hare and Droop use quotas and remainders; Sainte-Laguë, D'Hondt, and Imperiali hand out seats one by one to whoever currently has the strongest votes-per-seat ratio. Longer notes and links live on the calculator page.",
     "cta": "Work with percentages",
     "ctaVotes": "I have vote counts, not %",
-    "ctaRef": "Election reference (ParlGov)"
+    "ctaRef": "Election reference (ParlGov)",
+    "refTitle": "Parliamentary election reference",
+    "refP1": "The Reference section lets you pick a country and a specific election, then jump straight into the calculator with real data. The primary source is ParlGov (parliaments and governments database): over 800 parliamentary elections in ~40 democracies since the early 20th century. You can also connect CLEA (Constituency-Level Elections Archive) — constituency-level data aggregated by country, with a breakdown of seats into proportional and single-member tiers where the electoral system allows.",
+    "refP2": "The electoral threshold for most countries is filled in automatically from a built-in lookup table (based on current legislation). You can adjust it before opening the calculator."
   },
   "votesForm": {
     "title": "From raw votes to percentages—automatically",

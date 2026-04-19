@@ -36,6 +36,10 @@ export function Landing() {
       <h2>{t("landing.methodsTitle")}</h2>
       <p>{t("landing.methodsList")}</p>
 
+      <h2>{t("landing.refTitle")}</h2>
+      <p>{t("landing.refP1")}</p>
+      <p>{t("landing.refP2")}</p>
+
       <p className="landing-actions">
         <Link className="btn btn-primary" to="/app">
           {t("landing.cta")}
