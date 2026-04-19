@@ -809,6 +809,24 @@ class ReferenceStore:
                         ref_n = int(con.execute("SELECT COUNT(*) FROM ref_party_election").fetchone()[0])
                 except Exception:
                     pass
+                debug: dict[str, object] = {
+                    "thresholds_loaded": len(_THRESHOLDS),
+                    "thresholds_sample": dict(list(_THRESHOLDS.items())[:5]),
+                }
+                try:
+                    if _has_table(con, "ref_party_election"):
+                        cc_rows = con.execute(
+                            "SELECT DISTINCT country_code FROM ref_party_election "
+                            "WHERE source = 'parlgov' AND country_code IS NOT NULL LIMIT 10"
+                        ).fetchall()
+                        debug["ref_country_codes_sample"] = [r[0] for r in cc_rows]
+                        thr_count = con.execute(
+                            "SELECT COUNT(*) FROM ref_party_election "
+                            "WHERE source = 'parlgov' AND threshold_pct IS NOT NULL"
+                        ).fetchone()
+                        debug["parlgov_rows_with_threshold"] = int(thr_count[0]) if thr_count else 0
+                except Exception:
+                    pass
                 parlgov_status: dict[str, object] = {
                     "loaded": True,
                     "elections_distinct": int(n_e),
@@ -816,6 +834,7 @@ class ReferenceStore:
                     "duckdb_path": str(self._db_path()),
                     "ref_party_election_rows": ref_n,
                     "source": "ParlGov development CSV (parlgov.org)",
+                    "debug": debug,
                 }
                 clea_status: dict[str, object]
                 csv_path = _clea_csv_path()
