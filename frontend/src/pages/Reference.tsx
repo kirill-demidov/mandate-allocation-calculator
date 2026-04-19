@@ -279,7 +279,7 @@ export function Reference() {
     void loadUnifiedElections(0, false);
   }, [status, countryId, dateFrom, dateTo, searchQ, sourceFilter, loadUnifiedElections]);
 
-  async function onPickElection(id: number, key: string) {
+  async function onPickElection(id: number, key: string, thresholdHint?: number | null) {
     if (selectedKey === key) {
       setSelectedKey(null);
       setDetail(null);
@@ -291,7 +291,7 @@ export function Reference() {
     try {
       const d = await fetchReferenceElectionDetail(id);
       setDetail({ ...d, source: "parlgov" });
-      setThreshold(0);
+      setThreshold(thresholdHint ?? 0);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setDetail(null);
@@ -302,7 +302,7 @@ export function Reference() {
 
   async function onPickUnified(row: UnifiedElectionRow) {
     if (row.source === "parlgov" && row.parlgov_election_id != null) {
-      await onPickElection(row.parlgov_election_id, row.election_key);
+      await onPickElection(row.parlgov_election_id, row.election_key, row.threshold_percent);
       return;
     }
     if (row.source === "clea") {

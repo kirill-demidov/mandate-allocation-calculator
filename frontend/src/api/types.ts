@@ -103,6 +103,6 @@ export type ReferenceElectionDetail = {
 export type ReferencePrefillResponse = {
   totalMandates: number;
   thresholdPercent: number;
-  parties: { name: string; votePercent: string }[];
+  parties: { name: string; votePercent: string; seatsRecorded?: number | null }[];
   meta?: Record<string, unknown>;
 };

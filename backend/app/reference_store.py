@@ -1092,7 +1092,7 @@ class ReferenceStore:
         seats_total = detail.get("seats_total")
         if not isinstance(seats_total, int) or seats_total < 1:
             raise ValueError("invalid_seats_total")
-        raw: list[tuple[str, float]] = []
+        raw: list[tuple[str, float, int | None]] = []
         for p in detail["parties"]:
             if not isinstance(p, dict):
                 continue
@@ -1105,15 +1105,20 @@ class ReferenceStore:
             except (TypeError, ValueError):
                 continue
             if v >= 0:
-                raw.append((name, v))
+                sr = p.get("seats_recorded")
+                raw.append((name, v, int(sr) if sr is not None else None))
         if not raw:
             raise ValueError("no_parties")
-        s = sum(v for _, v in raw)
+        s = sum(v for _, v, _ in raw)
         if s <= 0:
             raise ValueError("no_votes")
         parties_out = [
-            {"name": n, "votePercent": f"{(100.0 * v / s):.8f}".rstrip("0").rstrip(".")}
-            for n, v in raw
+            {
+                "name": n,
+                "votePercent": f"{(100.0 * v / s):.8f}".rstrip("0").rstrip("."),
+                "seatsRecorded": sr,
+            }
+            for n, v, sr in raw
         ]
         return {
             "totalMandates": seats_total,
@@ -1254,7 +1259,7 @@ class ReferenceStore:
         thr = float(threshold_percent) if threshold_percent is not None else (
             float(thr_default) if thr_default is not None else 0.0
         )
-        raw: list[tuple[str, float]] = []
+        raw: list[tuple[str, float, int | None]] = []
         for p in detail["parties"]:
             if not isinstance(p, dict):
                 continue
@@ -1267,15 +1272,20 @@ class ReferenceStore:
             except (TypeError, ValueError):
                 continue
             if v >= 0:
-                raw.append((name, v))
+                sr = p.get("seats_recorded")
+                raw.append((name, v, int(sr) if sr is not None else None))
         if not raw:
             raise ValueError("no_parties")
-        s = sum(v for _, v in raw)
+        s = sum(v for _, v, _ in raw)
         if s <= 0:
             raise ValueError("no_votes")
         parties_out = [
-            {"name": n, "votePercent": f"{(100.0 * v / s):.8f}".rstrip("0").rstrip(".")}
-            for n, v in raw
+            {
+                "name": n,
+                "votePercent": f"{(100.0 * v / s):.8f}".rstrip("0").rstrip("."),
+                "seatsRecorded": sr,
+            }
+            for n, v, sr in raw
         ]
         return {
             "totalMandates": seats_total,

@@ -36,9 +36,64 @@ export function Landing() {
       <h2>{t("landing.methodsTitle")}</h2>
       <p>{t("landing.methodsList")}</p>
 
+      <h3>{t("landing.methodsDetailTitle")}</h3>
+      <dl className="methods-detail">
+        {(
+          [
+            "methodsDetailHare",
+            "methodsDetailDroop",
+            "methodsDetailSL",
+            "methodsDetailDHondt",
+            "methodsDetailImp",
+          ] as const
+        ).map((key) => {
+          const text = t(`landing.${key}`);
+          const colonIdx = text.indexOf(":");
+          const term = colonIdx > -1 ? text.slice(0, colonIdx) : text;
+          const desc = colonIdx > -1 ? text.slice(colonIdx + 1).trim() : "";
+          return (
+            <div key={key} className="methods-detail__item">
+              <dt>{term}</dt>
+              {desc && <dd>{desc}</dd>}
+            </div>
+          );
+        })}
+      </dl>
+      <p>
+        <Link to="/app">{t("landing.cta")}</Link>
+      </p>
+
       <h2>{t("landing.refTitle")}</h2>
       <p>{t("landing.refP1")}</p>
       <p>{t("landing.refP2")}</p>
+
+      <h2>{t("landing.sourcesTitle")}</h2>
+
+      <h3>{t("landing.sourcesParlgovTitle")}</h3>
+      <p>{t("landing.sourcesParlgovP")}</p>
+      <p>
+        <a
+          href="https://parlgov.org"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          parlgov.org
+        </a>
+      </p>
+
+      <h3>{t("landing.sourcesCleaTitle")}</h3>
+      <p>{t("landing.sourcesCleaP")}</p>
+      <p>
+        <a
+          href="https://electiondataarchive.org"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          electiondataarchive.org
+        </a>
+      </p>
+
+      <p className="muted">{t("landing.sourcesNote")}</p>
 
       <p className="landing-actions">
         <Link className="btn btn-primary" to="/app">

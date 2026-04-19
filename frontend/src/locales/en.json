@@ -62,7 +62,7 @@
     "seatsTierParlgov": "ParlGov in this export does not split parliament size into proportional and district tiers.",
     "parlgovSeatsTierFoot": "PR and FPTP columns are filled only for CLEA rows (when the CSV has MAG). ParlGov rows show \"—\" there.",
     "votesValid": "valid votes: {{n}}",
-    "thresholdHint": "Electoral thresholds are not read from the dataset—enter one manually (percent), as in the calculator.",
+    "thresholdHint": "The electoral threshold has been filled in automatically from the built-in lookup table. Adjust if needed before opening the calculator.",
     "thresholdHintClea": "A threshold value ({{n}}%) was detected in the CLEA file—you can keep it or override above.",
     "thresholdLabel": "Threshold for calculator (%)",
     "colParty": "Party",
@@ -103,7 +103,19 @@
     "ctaRef": "Election reference (ParlGov)",
     "refTitle": "Parliamentary election reference",
     "refP1": "The Reference section lets you pick a country and a specific election, then jump straight into the calculator with real data. Two sources are merged into one unified database: ParlGov (parliaments and governments database) — over 800 parliamentary elections in ~40 democracies since the early 20th century; and CLEA (Constituency-Level Elections Archive) — constituency-level data aggregated by country, with a breakdown of seats into proportional and single-member tiers where the electoral system allows.",
-    "refP2": "The electoral threshold for most countries is filled in automatically from a built-in lookup table (based on current legislation). You can adjust it before opening the calculator."
+    "refP2": "The electoral threshold for most countries is filled in automatically from a built-in lookup table (based on current legislation). You can adjust it before opening the calculator.",
+    "sourcesTitle": "Data sources",
+    "sourcesParlgovTitle": "ParlGov — Parliaments and Governments Database",
+    "sourcesParlgovP": "An open academic database maintained by Holger Döring and Philip Manow. Covers over 800 parliamentary elections across ~40 democracies from the late 19th century onward: vote shares, seat counts by party, election dates, and cabinet data. Updated regularly and available under CC-BY-SA. Please cite when used in research.",
+    "sourcesCleaTitle": "CLEA — Constituency-Level Elections Archive",
+    "sourcesCleaP": "A district-level electoral archive maintained by a team led by Kenneth Kollman. Covers hundreds of elections worldwide with full constituency-level detail. In this service, district rows are aggregated to the national level using district magnitude (MAG): multi-member districts (MAG > 1) are treated as the proportional tier. CLEA data is provided for academic and educational use.",
+    "sourcesNote": "Data is displayed as-is from the original CSV files. Figures may be incomplete or rounded — verify against official protocols before citing.",
+    "methodsDetailTitle": "Methods in detail",
+    "methodsDetailHare": "Hare (largest remainder): quota = total votes / seats. Each party gets the integer part of its votes divided by the quota; remaining seats go to the largest remainders. The most proportional of the five methods, but sensitive to rounding.",
+    "methodsDetailDroop": "Droop quota: quota = votes / (seats + 1) + 1. Historically linked to the single transferable vote (STV); slightly more favourable to larger parties than Hare.",
+    "methodsDetailSL": "Sainte-Laguë (divisors 1, 3, 5, …): seats are awarded one by one to the party with the highest votes-per-divisor quotient. Considered the most neutral between large and small parties; used in Norway, Sweden, and New Zealand.",
+    "methodsDetailDHondt": "D'Hondt (divisors 1, 2, 3, …): same logic but with natural-number divisors. Slightly over-represents larger parties, which can help form stable majorities. One of the most widely used systems in Europe.",
+    "methodsDetailImp": "Imperiali (divisors 2, 3, 4, …): an even steeper bias toward leading parties. Rarely used in practice; small parties receive significantly less than their proportional share."
   },
   "votesForm": {
     "title": "From raw votes to percentages—automatically",
@@ -228,6 +240,8 @@
   "table": {
     "party": "Party",
     "votes": "Votes (%)",
+    "actual": "Actual",
+    "actualTitle": "Actual seats from source (ParlGov / CLEA)",
     "hare": "Hare",
     "droop": "Droop",
     "sl": "Sainte-Laguë",

@@ -6,7 +6,7 @@ import type { CalculateRequest, MandateRow } from "../api/types";
 import type { CalculatorPrefillState } from "../types/calculatorPrefill";
 import { isPercentSumOver100, sumVotePercentsNamedOnly } from "../utils/percentSum";
 
-type PartyDraft = { id: string; name: string; votePercent: string };
+type PartyDraft = { id: string; name: string; votePercent: string; seatsRecorded?: number | null };
 
 function newParty(): PartyDraft {
   return { id: crypto.randomUUID(), name: "", votePercent: "" };
@@ -196,6 +196,7 @@ export function Calculator() {
         id: crypto.randomUUID(),
         name: p.name,
         votePercent: p.votePercent,
+        seatsRecorded: p.seatsRecorded ?? null,
       })),
     );
     setResult(null);
@@ -395,72 +396,90 @@ export function Calculator() {
         <>
           <h2 id="results">{t("calc.results")}</h2>
           <div className="table-wrap">
-            <table className="data data-results" aria-labelledby="results">
-              <colgroup>
-                <col className="data-results__party" />
-                <col className="data-results__pct" />
-                <col className="data-results__method" />
-                <col className="data-results__method" />
-                <col className="data-results__method" />
-                <col className="data-results__method" />
-                <col className="data-results__method" />
-              </colgroup>
-              <thead>
-                <tr>
-                  <th scope="col">{t("table.party")}</th>
-                  <th scope="col" className="num">
-                    {t("table.votes")}
-                  </th>
-                  <th scope="col" className="num">
-                    {t("table.hare")}
-                  </th>
-                  <th scope="col" className="num">
-                    {t("table.droop")}
-                  </th>
-                  <th scope="col" className="num">
-                    {t("table.sl")}
-                  </th>
-                  <th scope="col" className="num">
-                    {t("table.dhondt")}
-                  </th>
-                  <th scope="col" className="num">
-                    {t("table.imp")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {result.map((r) => (
-                  <tr key={r.party}>
-                    <td className="data-results__party-cell">{r.party}</td>
-                    <td className="num">{r.vote_percent.toFixed(2)}</td>
-                    <td className="num">{r.hare}</td>
-                    <td className="num">{r.droop}</td>
-                    <td className="num">{r.sainte_lague}</td>
-                    <td className="num">{r.dhondt}</td>
-                    <td className="num">{r.imperiali}</td>
-                  </tr>
-                ))}
-                <tr>
-                  <td className="data-results__party-cell">
-                    <strong>{t("table.total")}</strong>
-                  </td>
-                  <td className="num">
-                    <strong>
-                      {result.reduce((a, r) => a + r.vote_percent, 0).toFixed(2)}
-                    </strong>
-                  </td>
-                  {(["hare", "droop", "sainte_lague", "dhondt", "imperiali"] as const).map(
-                    (k) => (
-                      <td key={k} className="num">
+            {(() => {
+              const seatsMap = new Map(
+                parties
+                  .filter((p) => p.seatsRecorded != null)
+                  .map((p) => [p.name.trim(), p.seatsRecorded as number]),
+              );
+              const hasActual = seatsMap.size > 0;
+              return (
+                <table className="data data-results" aria-labelledby="results">
+                  <colgroup>
+                    <col className="data-results__party" />
+                    <col className="data-results__pct" />
+                    {hasActual && <col className="data-results__method" />}
+                    <col className="data-results__method" />
+                    <col className="data-results__method" />
+                    <col className="data-results__method" />
+                    <col className="data-results__method" />
+                    <col className="data-results__method" />
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th scope="col">{t("table.party")}</th>
+                      <th scope="col" className="num">
+                        {t("table.votes")}
+                      </th>
+                      {hasActual && (
+                        <th scope="col" className="num" title={t("table.actualTitle")}>
+                          {t("table.actual")}
+                        </th>
+                      )}
+                      <th scope="col" className="num">{t("table.hare")}</th>
+                      <th scope="col" className="num">{t("table.droop")}</th>
+                      <th scope="col" className="num">{t("table.sl")}</th>
+                      <th scope="col" className="num">{t("table.dhondt")}</th>
+                      <th scope="col" className="num">{t("table.imp")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {result.map((r) => (
+                      <tr key={r.party}>
+                        <td className="data-results__party-cell">{r.party}</td>
+                        <td className="num">{r.vote_percent.toFixed(2)}</td>
+                        {hasActual && (
+                          <td className="num">
+                            {seatsMap.has(r.party) ? seatsMap.get(r.party) : "—"}
+                          </td>
+                        )}
+                        <td className="num">{r.hare}</td>
+                        <td className="num">{r.droop}</td>
+                        <td className="num">{r.sainte_lague}</td>
+                        <td className="num">{r.dhondt}</td>
+                        <td className="num">{r.imperiali}</td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <td className="data-results__party-cell">
+                        <strong>{t("table.total")}</strong>
+                      </td>
+                      <td className="num">
                         <strong>
-                          {result.reduce((a, r) => a + Number(r[k] as number), 0)}
+                          {result.reduce((a, r) => a + r.vote_percent, 0).toFixed(2)}
                         </strong>
                       </td>
-                    ),
-                  )}
-                </tr>
-              </tbody>
-            </table>
+                      {hasActual && (
+                        <td className="num">
+                          <strong>
+                            {Array.from(seatsMap.values()).reduce((a, v) => a + v, 0)}
+                          </strong>
+                        </td>
+                      )}
+                      {(["hare", "droop", "sainte_lague", "dhondt", "imperiali"] as const).map(
+                        (k) => (
+                          <td key={k} className="num">
+                            <strong>
+                              {result.reduce((a, r) => a + Number(r[k] as number), 0)}
+                            </strong>
+                          </td>
+                        ),
+                      )}
+                    </tr>
+                  </tbody>
+                </table>
+              );
+            })()}
           </div>
 
           <BarChart rows={result} valueKey="vote_percent" label={t("calc.chartVotes")} />
