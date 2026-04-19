@@ -1,5 +1,6 @@
 CREATED: 2026-04-19 | claude-sonnet-4-6
 APPROVED: 2026-04-19 | claude-sonnet-4-6
+DONE & IMPLEMENTED: 2026-04-19 | claude-sonnet-4-6
 
 # План: calculator-improvements-landing-expansion
 
