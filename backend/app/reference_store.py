@@ -544,9 +544,23 @@ class ReferenceStore:
     def _rebuild_ref(self, con: duckdb.DuckDBPyConnection) -> None:
         parts: list[str] = []
 
+        if _THRESHOLDS:
+            vals = ", ".join(
+                f"('{k}', {v})" for k, v in _THRESHOLDS.items()
+            )
+            con.execute(
+                f"CREATE OR REPLACE TEMP TABLE _thr_lut AS "
+                f"SELECT * FROM (VALUES {vals}) t(country_code, threshold_pct)"
+            )
+            thr_join = "LEFT JOIN _thr_lut tl ON tl.country_code = pe.country_name_short"
+            thr_expr = "tl.threshold_pct"
+        else:
+            thr_join = ""
+            thr_expr = "CAST(NULL AS DOUBLE)"
+
         if _has_view(con, "parliament_elections"):
             parts.append(
-                """
+                f"""
                 SELECT
                   ('parlgov|' || CAST(pe.election_id AS VARCHAR)) AS election_key,
                   pe.election_date AS election_date,
@@ -564,11 +578,12 @@ class ReferenceStore:
                   pe.vote_share AS vote_share_pct,
                   pe.seats AS seats,
                   CAST('parlgov' AS VARCHAR) AS source,
-                  CAST(NULL AS DOUBLE) AS threshold_pct,
+                  {thr_expr} AS threshold_pct,
                   pe.seats_total AS seats_total,
                   pe.country_name_short AS country_code
                 FROM parliament_elections pe
                 LEFT JOIN election_meta em ON CAST(em.id AS BIGINT) = pe.election_id
+                {thr_join}
                 """
             )
 
@@ -681,6 +696,13 @@ class ReferenceStore:
                     }
                     if not needed.issubset(existing):
                         self._rebuild_ref(con)
+                    elif _THRESHOLDS:
+                        has_pg_thr = con.execute(
+                            "SELECT COUNT(*) FROM ref_party_election "
+                            "WHERE source = 'parlgov' AND threshold_pct IS NOT NULL"
+                        ).fetchone()
+                        if has_pg_thr is None or int(has_pg_thr[0]) == 0:
+                            self._rebuild_ref(con)
 
                 self._con = con
                 logger.info("ReferenceStore ready at %s", db_path)
