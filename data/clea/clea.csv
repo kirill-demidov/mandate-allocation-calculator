@@ -1,0 +1,5 @@
+ctr,yr,mn,dy,cst,pty_n,pv1,vv1,mag,seat,tm,ctr_n
+999,2020,3,1,CST-A,Alpha,5200,10000,10,5,0.04,Demo (synthetic CLEA fixture)
+999,2020,3,1,CST-A,Beta,4800,10000,10,5,0.04,Demo (synthetic CLEA fixture)
+999,2020,3,1,CST-B,Alpha,3100,10000,10,5,0.04,Demo (synthetic CLEA fixture)
+999,2020,3,1,CST-B,Beta,6900,10000,10,5,0.04,Demo (synthetic CLEA fixture)

@@ -4,6 +4,9 @@ services:
     environment:
       CORS_ORIGINS: ${CORS_ORIGINS:-}
       PARLGOV_DATA_DIR: /app/data/parlgov
+      CLEA_DATA_DIR: /app/data/clea
+    volumes:
+      - ./data/clea:/app/data/clea
     expose:
       - "8000"
 
