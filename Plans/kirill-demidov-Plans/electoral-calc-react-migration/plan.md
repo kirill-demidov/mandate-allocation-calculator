@@ -172,8 +172,17 @@ cd frontend && npm run dev
 ```
 Затем перезапустить Vite-сервер (если уже запущен) — изменение proxy вступает в силу только после рестарта.
 
-**Прод (DigitalOcean):** инфраструктура в коде корректна. Если прод не работает — проверить:
-1. Запущены ли контейнеры: `docker compose ps` на дроплете
-2. Настроен ли nginx: `cat /etc/nginx/sites-enabled/electoral-calc*`
-3. Сертификат: `certbot certificates`
-4. Логи: `docker compose logs backend` — нет ли ошибок при старте
+**Прод (DigitalOcean):** найден и исправлен сегфолт — см. ниже.
+
+### 11.1. Сегфолт на проде (exit 139) — DuckDB WAL
+
+**Симптом:** `backend` поднимался, обрабатывал 2–3 запроса (`/api/health`, `/api/reference/status`) и падал с `Exited (139)`.
+
+**Причина:** при предыдущем краше DuckDB не сделал checkpoint; файл `parlgov.duckdb.wal` (1.9 MB при основном DB 12 KB) остался в `data/parlgov/`. При следующем запуске DuckDB пытается реплеировать WAL → SIGSEGV в `duckdb 1.1.3`.
+
+**Исправлено:**
+- `backend/app/parlgov_duckdb.py`: при старте проверяет наличие `*.wal` файла — если есть, удаляет WAL и основной `.duckdb` до вызова `duckdb.connect()`, затем пересобирает из CSV.
+- `docker-compose.yml`: добавлен `restart: unless-stopped` для `backend`.
+- На сервере: вручную удалены `parlgov.duckdb` + `.wal`, бэкенд перезапущен.
+
+**Деплой:** изменения закоммичены (`79aeda7`), задеплоены через `git pull` + `docker compose build/up -d`. Оба контейнера работают стабильно.
