@@ -6,6 +6,7 @@ import type {
   ReferenceElectionDetail,
   ReferenceElectionsResponse,
   ReferencePrefillResponse,
+  UnifiedElectionsResponse,
 } from "./types";
 
 const base = import.meta.env.VITE_API_BASE ?? "";
@@ -110,6 +111,33 @@ export async function fetchReferenceElections(
   return (await res.json()) as ReferenceElectionsResponse;
 }
 
+export type UnifiedElectionsQuery = {
+  countryId?: number;
+  limit: number;
+  offset: number;
+  dateFrom?: string;
+  dateTo?: string;
+  q?: string;
+  source?: "parlgov" | "clea";
+};
+
+export async function fetchUnifiedElections(
+  params: UnifiedElectionsQuery,
+): Promise<UnifiedElectionsResponse> {
+  const q = new URLSearchParams({
+    limit: String(params.limit),
+    offset: String(params.offset),
+  });
+  if (params.countryId != null) q.set("country_id", String(params.countryId));
+  if (params.dateFrom) q.set("date_from", params.dateFrom);
+  if (params.dateTo) q.set("date_to", params.dateTo);
+  if (params.q?.trim()) q.set("q", params.q.trim());
+  if (params.source) q.set("source", params.source);
+  const res = await fetch(`${base}/api/reference/unified-elections?${q}`);
+  if (!res.ok) throw new Error(await parseError(res));
+  return (await res.json()) as UnifiedElectionsResponse;
+}
+
 export async function fetchReferenceElectionDetail(
   electionId: number,
 ): Promise<ReferenceElectionDetail> {
@@ -190,4 +218,8 @@ export async function fetchCleaPrefill(
 
 export function cleaDuckdbDownloadHref(): string {
   return `${base}/api/reference/clea/duckdb`;
+}
+
+export function referenceDuckdbDownloadHref(): string {
+  return `${base}/api/reference/duckdb`;
 }

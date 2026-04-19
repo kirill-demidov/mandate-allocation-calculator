@@ -10,6 +10,8 @@ from pathlib import Path
 
 import duckdb
 
+from app.reference_unified import rebuild_ref_party_election
+
 logger = logging.getLogger(__name__)
 
 _ALIASES: dict[str, list[str]] = {
@@ -53,6 +55,14 @@ def _data_dir() -> Path:
     return Path(os.getenv("TMPDIR", "/tmp")) / "clea"
 
 
+def _parlgov_duckdb_path() -> Path | None:
+    """Если задан каталог ParlGov — CLEA пишет в тот же файл (единая DuckDB)."""
+    raw = os.getenv("PARLGOV_DATA_DIR", "").strip()
+    if raw:
+        return Path(raw) / "parlgov.duckdb"
+    return None
+
+
 def _csv_path() -> Path | None:
     p = os.getenv("CLEA_CSV_PATH", "").strip()
     if p:
@@ -69,6 +79,9 @@ def _csv_path() -> Path | None:
 
 
 def _duckdb_out_path() -> Path:
+    merged = _parlgov_duckdb_path()
+    if merged is not None:
+        return merged
     raw = os.getenv("CLEA_DUCKDB_PATH", "").strip()
     if raw:
         return Path(raw)
@@ -127,6 +140,10 @@ class CleaStore:
             except Exception:  # noqa: BLE001
                 pass
             self._con = None
+
+    def reset_connection(self) -> None:
+        with self._lock:
+            self._close_conn()
 
     def refresh(self, *, force: bool = False) -> dict[str, object]:
         """Пересобрать агрегат из CSV, если файл на диске новее записанного mtime (или force)."""
@@ -593,6 +610,8 @@ class CleaStore:
                 (agg_note_lit + " " + thr_note_lit)[:900],
             ],
         )
+
+        rebuild_ref_party_election(con)
 
     def status(self) -> dict[str, object]:
         csv_path = _csv_path()

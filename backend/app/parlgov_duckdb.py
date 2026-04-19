@@ -11,6 +11,8 @@ from pathlib import Path
 import duckdb
 import httpx
 
+from app.reference_unified import rebuild_ref_party_election
+
 logger = logging.getLogger(__name__)
 
 VIEW_ELECTION_CSV = (
@@ -43,6 +45,11 @@ class ParlGovStore:
             except Exception:  # noqa: BLE001
                 pass
             self._con = None
+
+    def reset_connection(self) -> None:
+        """Закрыть кэш DuckDB (после записи из другого процесса/хранилища в тот же файл)."""
+        with self._lock:
+            self._close_conn()
 
     def _materialize_parliament(
         self, con: duckdb.DuckDBPyConnection, ve_path: Path, el_path: Path
@@ -83,6 +90,18 @@ class ParlGovStore:
               AND TRY_CAST(vote_share AS DOUBLE) IS NOT NULL
             """
         )
+        rebuild_ref_party_election(con)
+
+    @staticmethod
+    def _ensure_ref_party_election(con: duckdb.DuckDBPyConnection) -> None:
+        r = con.execute(
+            """
+            SELECT COUNT(*) FROM information_schema.tables
+            WHERE table_schema = 'main' AND table_name = 'ref_party_election'
+            """
+        ).fetchone()
+        if r is None or int(r[0]) == 0:
+            rebuild_ref_party_election(con)
 
     def _remote_newer_than_local(
         self, client: httpx.Client, url: str, local: Path
@@ -139,6 +158,8 @@ class ParlGovStore:
                 ).fetchone()[0]
                 if int(has) == 0:
                     self._materialize_parliament(con, ve_path, el_path)
+                else:
+                    self._ensure_ref_party_election(con)
                 self._con = con
                 logger.info("ParlGov DuckDB ready at %s", db_path)
                 return con
@@ -171,6 +192,8 @@ class ParlGovStore:
                     ).fetchone()[0]
                     if int(has) == 0:
                         self._materialize_parliament(con, ve_path, el_path)
+                    else:
+                        self._ensure_ref_party_election(con)
                     self._con = con
                     return {
                         "updated": False,
@@ -202,10 +225,29 @@ class ParlGovStore:
             n_p = con.execute(
                 "SELECT COUNT(*) FROM parliament_elections"
             ).fetchone()[0]
+            db_path = str(_data_dir() / "parlgov.duckdb")
+            ref_n = 0
+            try:
+                r0 = con.execute(
+                    """
+                    SELECT COUNT(*) FROM information_schema.tables
+                    WHERE table_schema = 'main' AND table_name = 'ref_party_election'
+                    """
+                ).fetchone()
+                if r0 and int(r0[0]) > 0:
+                    ref_n = int(
+                        con.execute(
+                            "SELECT COUNT(*) FROM ref_party_election"
+                        ).fetchone()[0]
+                    )
+            except Exception:  # noqa: BLE001
+                pass
             return {
                 "loaded": True,
                 "elections_distinct": int(n_e),
                 "party_result_rows": int(n_p),
+                "duckdb_path": db_path,
+                "ref_party_election_rows": ref_n,
                 "source": "ParlGov development CSV (parlgov.org)",
             }
         except RuntimeError as e:
@@ -293,6 +335,137 @@ class ParlGovStore:
             for r in rows
         ]
         return out, int(total)
+
+    def list_unified_elections(
+        self,
+        country_id: int | None,
+        *,
+        date_from: str | None = None,
+        date_to: str | None = None,
+        q: str | None = None,
+        source: str | None = None,
+        limit: int = 40,
+        offset: int = 0,
+    ) -> tuple[list[dict[str, object]], int]:
+        """Список выборов из ref_party_election (ParlGov + CLEA в одной таблице)."""
+        con = self._ensure_loaded()
+        self._ensure_ref_party_election(con)
+        has_clea_e = int(
+            con.execute(
+                """
+                SELECT COUNT(*) FROM information_schema.tables
+                WHERE table_schema = 'main' AND table_name = 'clea_elections'
+                """
+            ).fetchone()[0]
+        ) > 0
+        conds: list[str] = ["1=1"]
+        params: list[object] = []
+        if country_id is not None:
+            conds.append("r.source = 'parlgov'")
+            conds.append(
+                "CAST(SPLIT_PART(r.election_key, '|', 2) AS BIGINT) IN ("
+                "SELECT DISTINCT election_id FROM parliament_elections WHERE country_id = ?)"
+            )
+            params.append(country_id)
+        if date_from:
+            conds.append("r.election_date >= CAST(? AS DATE)")
+            params.append(date_from)
+        if date_to:
+            conds.append("r.election_date <= CAST(? AS DATE)")
+            params.append(date_to)
+        if q and q.strip():
+            like = f"%{q.strip().lower()}%"
+            conds.append(
+                "(LOWER(r.election_label) LIKE ? OR LOWER(r.party_name) LIKE ?)"
+            )
+            params.extend([like, like])
+        if source in ("parlgov", "clea"):
+            conds.append("r.source = ?")
+            params.append(source)
+        where_sql = " AND ".join(conds)
+        base_sql = f"""
+            SELECT
+              r.election_key,
+              MAX(r.election_date) AS election_date,
+              MAX(r.election_label) AS election_label,
+              MAX(r.source) AS source,
+              MAX(r.threshold_pct) AS threshold_pct,
+              COUNT(*)::BIGINT AS n_parties
+            FROM ref_party_election r
+            WHERE {where_sql}
+            GROUP BY r.election_key
+        """
+        total = con.execute(
+            f"SELECT COUNT(*) FROM ({base_sql}) t",
+            params,
+        ).fetchone()[0]
+        if has_clea_e:
+            outer = f"""
+            SELECT
+              b.election_key,
+              b.election_date::VARCHAR AS election_date,
+              b.election_label,
+              b.source,
+              b.threshold_pct,
+              b.n_parties,
+              ce.votes_valid,
+              ce.seats_total,
+              ce.seats_pr_tier,
+              ce.seats_constituency_tier
+            FROM ({base_sql}) b
+            LEFT JOIN clea_elections ce
+              ON ce.election_key = b.election_key AND b.source = 'clea'
+            ORDER BY b.election_date DESC NULLS LAST
+            LIMIT ? OFFSET ?
+            """
+        else:
+            outer = f"""
+            SELECT
+              b.election_key,
+              b.election_date::VARCHAR AS election_date,
+              b.election_label,
+              b.source,
+              b.threshold_pct,
+              b.n_parties,
+              CAST(NULL AS BIGINT) AS votes_valid,
+              CAST(NULL AS INTEGER) AS seats_total,
+              CAST(NULL AS INTEGER) AS seats_pr_tier,
+              CAST(NULL AS INTEGER) AS seats_constituency_tier
+            FROM ({base_sql}) b
+            ORDER BY b.election_date DESC NULLS LAST
+            LIMIT ? OFFSET ?
+            """
+        params2 = list(params)
+        params2.extend([limit, offset])
+        rows = con.execute(outer, params2).fetchall()
+        out: list[dict[str, object]] = []
+        for r in rows:
+            ek = str(r[0])
+            parlgov_id: int | None = None
+            if ek.startswith("parlgov|"):
+                try:
+                    parlgov_id = int(ek.split("|", 1)[1])
+                except (IndexError, ValueError):
+                    parlgov_id = None
+            out.append(
+                {
+                    "election_key": ek,
+                    "parlgov_election_id": parlgov_id,
+                    "election_date": str(r[1]) if r[1] else "",
+                    "election_label": r[2],
+                    "source": r[3],
+                    "threshold_percent": float(r[4]) if r[4] is not None else None,
+                    "n_parties": int(r[5]) if r[5] is not None else 0,
+                    "votes_valid": int(r[6]) if r[6] is not None else None,
+                    "seats_total": int(r[7]) if r[7] is not None else None,
+                    "seats_pr_tier": int(r[8]) if r[8] is not None else None,
+                    "seats_constituency_tier": int(r[9]) if r[9] is not None else None,
+                }
+            )
+        return out, int(total)
+
+    def duckdb_file_path(self) -> Path:
+        return _data_dir() / "parlgov.duckdb"
 
     def election_detail(self, election_id: int) -> dict[str, object] | None:
         con = self._ensure_loaded()

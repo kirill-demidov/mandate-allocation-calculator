@@ -46,8 +46,30 @@ export type CleaElectionRow = {
   threshold_percent: number | null;
 };
 
+/** Список выборов из ref_party_election (ParlGov + CLEA, одна DuckDB). */
+export type UnifiedElectionRow = {
+  election_key: string;
+  parlgov_election_id: number | null;
+  election_date: string;
+  election_label: string | null;
+  source: string;
+  threshold_percent: number | null;
+  n_parties: number;
+  votes_valid: number | null;
+  seats_total: number | null;
+  seats_pr_tier: number | null;
+  seats_constituency_tier: number | null;
+};
+
 export type ReferenceElectionsResponse = {
   items: ReferenceElectionRow[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+export type UnifiedElectionsResponse = {
+  items: UnifiedElectionRow[];
   total: number;
   limit: number;
   offset: number;

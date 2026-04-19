@@ -34,6 +34,12 @@ async def reference_refresh(
 
     parlgov_result = await asyncio.to_thread(run_parlgov)
     clea_result = await asyncio.to_thread(run_clea)
+
+    def reset_both_conns() -> None:
+        get_store().reset_connection()
+        get_clea_store().reset_connection()
+
+    await asyncio.to_thread(reset_both_conns)
     status = {
         "parlgov": await asyncio.to_thread(get_store().status),
         "clea": await asyncio.to_thread(get_clea_store().status),
@@ -58,6 +64,54 @@ async def reference_countries() -> list[dict[str, object]]:
         return await asyncio.to_thread(get_store().list_countries)
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e)) from e
+
+
+@router.get("/unified-elections")
+async def reference_unified_elections(
+    country_id: int | None = Query(default=None),
+    date_from: Annotated[str | None, Query(description="YYYY-MM-DD")] = None,
+    date_to: Annotated[str | None, Query(description="YYYY-MM-DD")] = None,
+    q: Annotated[str | None, Query(max_length=200)] = None,
+    source: Annotated[str | None, Query(description="parlgov | clea")] = None,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> dict[str, object]:
+    """Список выборов из единой таблицы ref_party_election (ParlGov + CLEA в одном DuckDB)."""
+    if source is not None and source not in ("parlgov", "clea"):
+        raise HTTPException(status_code=400, detail="source должен быть parlgov или clea.")
+    try:
+        rows, total = await asyncio.to_thread(
+            get_store().list_unified_elections,
+            country_id,
+            date_from=date_from,
+            date_to=date_to,
+            q=q,
+            source=source,
+            limit=limit,
+            offset=offset,
+        )
+        return {"items": rows, "total": total, "limit": limit, "offset": offset}
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+
+
+@router.get("/duckdb")
+async def reference_download_duckdb() -> FileResponse:
+    """Скачать файл DuckDB со справочником (ParlGov + CLEA при объединённом хранении)."""
+    st = await asyncio.to_thread(get_store().status)
+    if not st.get("loaded"):
+        raise HTTPException(
+            status_code=503,
+            detail=str(st.get("error") or "ParlGov не загружен."),
+        )
+    path = get_store().duckdb_file_path()
+    if not path.is_file():
+        raise HTTPException(status_code=503, detail="Файл DuckDB не найден.")
+    return FileResponse(
+        str(path),
+        filename="reference.duckdb",
+        media_type="application/vnd.duckdb.file",
+    )
 
 
 @router.get("/elections")
@@ -182,6 +236,7 @@ async def clea_prefill(
 
 @router.get("/clea/duckdb")
 async def clea_download_duckdb() -> FileResponse:
+    """Обратная совместимость: при PARLGOV_DATA_DIR — тот же файл, что GET /api/reference/duckdb."""
     st = await asyncio.to_thread(get_clea_store().status)
     if not st.get("enabled"):
         raise HTTPException(
@@ -191,8 +246,11 @@ async def clea_download_duckdb() -> FileResponse:
     path = get_clea_store().duckdb_file_path()
     if not path.is_file():
         raise HTTPException(status_code=503, detail="Файл DuckDB ещё не создан.")
+    fname = (
+        "reference.duckdb" if path.name == "parlgov.duckdb" else "clea_aggregated.duckdb"
+    )
     return FileResponse(
         str(path),
-        filename="clea_aggregated.duckdb",
+        filename=fname,
         media_type="application/vnd.duckdb.file",
     )

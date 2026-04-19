@@ -3,22 +3,20 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import type { CalculatorPrefillState } from "../types/calculatorPrefill";
 import type {
-  CleaElectionRow,
   ReferenceCountry,
   ReferenceElectionDetail,
-  ReferenceElectionRow,
+  UnifiedElectionRow,
 } from "../api/types";
 import {
-  cleaDuckdbDownloadHref,
   fetchCleaDetail,
-  fetchCleaElections,
   fetchCleaPrefill,
   fetchReferenceCountries,
   fetchReferenceElectionDetail,
-  fetchReferenceElections,
   fetchReferencePrefill,
   fetchReferenceStatus,
+  fetchUnifiedElections,
   postReferenceRefresh,
+  referenceDuckdbDownloadHref,
 } from "../api/client";
 
 const PAGE = 40;
@@ -42,15 +40,13 @@ export function Reference() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [searchQ, setSearchQ] = useState("");
-  const [elections, setElections] = useState<ReferenceElectionRow[]>([]);
-  const [electionTotal, setElectionTotal] = useState(0);
-  const [cleaElections, setCleaElections] = useState<CleaElectionRow[]>([]);
-  const [cleaTotal, setCleaTotal] = useState(0);
+  const [sourceFilter, setSourceFilter] = useState<"" | "parlgov" | "clea">("");
+  const [unifiedElections, setUnifiedElections] = useState<UnifiedElectionRow[]>([]);
+  const [unifiedTotal, setUnifiedTotal] = useState(0);
   const [detail, setDetail] = useState<ReferenceElectionDetail | null>(null);
   const [threshold, setThreshold] = useState(0);
   const [loading, setLoading] = useState(true);
   const [listBusy, setListBusy] = useState(false);
-  const [cleaListBusy, setCleaListBusy] = useState(false);
   const [detailBusy, setDetailBusy] = useState(false);
   const [prefillBusy, setPrefillBusy] = useState(false);
   const [refreshBusy, setRefreshBusy] = useState(false);
@@ -58,13 +54,8 @@ export function Reference() {
   const [error, setError] = useState<string | null>(null);
 
   const canLoadMore = useMemo(
-    () => elections.length < electionTotal,
-    [elections.length, electionTotal],
-  );
-
-  const canLoadMoreClea = useMemo(
-    () => cleaElections.length < cleaTotal,
-    [cleaElections.length, cleaTotal],
+    () => unifiedElections.length < unifiedTotal,
+    [unifiedElections.length, unifiedTotal],
   );
 
   const refreshStatus = useCallback(async () => {
@@ -99,51 +90,29 @@ export function Reference() {
     };
   }, [refreshStatus]);
 
-  const loadElections = useCallback(
+  const loadUnifiedElections = useCallback(
     async (nextOffset: number, append: boolean) => {
       setListBusy(true);
       setError(null);
       try {
-        const res = await fetchReferenceElections({
+        const res = await fetchUnifiedElections({
           countryId: typeof countryId === "number" ? countryId : undefined,
           limit: PAGE,
           offset: nextOffset,
           dateFrom: dateFrom.trim() || undefined,
           dateTo: dateTo.trim() || undefined,
           q: searchQ.trim() || undefined,
+          source: sourceFilter || undefined,
         });
-        setElectionTotal(res.total);
-        setElections((prev) => (append ? [...prev, ...res.items] : res.items));
+        setUnifiedTotal(res.total);
+        setUnifiedElections((prev) => (append ? [...prev, ...res.items] : res.items));
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
       } finally {
         setListBusy(false);
       }
     },
-    [countryId, dateFrom, dateTo, searchQ],
-  );
-
-  const loadCleaElections = useCallback(
-    async (nextOffset: number, append: boolean) => {
-      setCleaListBusy(true);
-      setError(null);
-      try {
-        const res = await fetchCleaElections({
-          limit: PAGE,
-          offset: nextOffset,
-          dateFrom: dateFrom.trim() || undefined,
-          dateTo: dateTo.trim() || undefined,
-          q: searchQ.trim() || undefined,
-        });
-        setCleaTotal(res.total);
-        setCleaElections((prev) => (append ? [...prev, ...res.items] : res.items));
-      } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
-      } finally {
-        setCleaListBusy(false);
-      }
-    },
-    [dateFrom, dateTo, searchQ],
+    [countryId, dateFrom, dateTo, searchQ, sourceFilter],
   );
 
   const formatRefreshPart = useCallback(
@@ -180,31 +149,23 @@ export function Reference() {
         const pgst = r.status?.parlgov as Record<string, unknown> | undefined;
         if (pgst?.error) setError(String(pgst.error));
         setDetail(null);
-        setElections([]);
-        setCleaElections([]);
-        void loadElections(0, false);
-        void loadCleaElections(0, false);
+        setUnifiedElections([]);
+        void loadUnifiedElections(0, false);
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
       } finally {
         setRefreshBusy(false);
       }
     },
-    [formatRefreshPart, loadElections, loadCleaElections],
+    [formatRefreshPart, loadUnifiedElections],
   );
 
   useEffect(() => {
     if (!parlgovLoaded(status)) return;
-    setElections([]);
+    setUnifiedElections([]);
     setDetail(null);
-    void loadElections(0, false);
-  }, [status, countryId, dateFrom, dateTo, searchQ, loadElections]);
-
-  useEffect(() => {
-    if (!cleaEnabled(status)) return;
-    setCleaElections([]);
-    void loadCleaElections(0, false);
-  }, [status, dateFrom, dateTo, searchQ, loadCleaElections]);
+    void loadUnifiedElections(0, false);
+  }, [status, countryId, dateFrom, dateTo, searchQ, sourceFilter, loadUnifiedElections]);
 
   async function onPickElection(id: number) {
     setDetailBusy(true);
@@ -218,6 +179,16 @@ export function Reference() {
       setDetail(null);
     } finally {
       setDetailBusy(false);
+    }
+  }
+
+  async function onPickUnified(row: UnifiedElectionRow) {
+    if (row.source === "parlgov" && row.parlgov_election_id != null) {
+      await onPickElection(row.parlgov_election_id);
+      return;
+    }
+    if (row.source === "clea") {
+      await onPickCleaElection(row.election_key);
     }
   }
 
@@ -337,6 +308,13 @@ export function Reference() {
             >
               {t("ref.refreshForce")}
             </button>
+            <a
+              className="btn btn-secondary"
+              href={referenceDuckdbDownloadHref()}
+              download
+            >
+              {t("ref.downloadDuckdb")}
+            </a>
           </p>
         </section>
       ) : null}
@@ -394,52 +372,85 @@ export function Reference() {
                   onChange={(e) => setDateTo(e.target.value)}
                 />
               </label>
+              <label className="field">
+                <span>{t("ref.filterSource")}</span>
+                <select
+                  value={sourceFilter}
+                  onChange={(e) =>
+                    setSourceFilter((e.target.value || "") as "" | "parlgov" | "clea")
+                  }
+                >
+                  <option value="">{t("ref.filterSourceAll")}</option>
+                  <option value="parlgov">{t("ref.filterSourceParlgov")}</option>
+                  <option value="clea">{t("ref.filterSourceClea")}</option>
+                </select>
+              </label>
             </div>
+            {status && !cleaEnabled(status) ? (
+              <p className="muted" style={{ marginTop: "0.75rem" }}>
+                {t("ref.cleaOptionalHint")}
+              </p>
+            ) : null}
           </section>
 
           <section className="panel">
             <h2 className="panel-title">{t("ref.electionsTitle")}</h2>
-            {listBusy && !elections.length ? (
+            {listBusy && !unifiedElections.length ? (
               <p className="muted">{t("ref.loadingList")}</p>
             ) : null}
             <div className="table-wrap">
               <table className="data table-ref-pick">
                 <colgroup>
+                  <col style={{ width: "16%" }} />
                   <col style={{ width: "10%" }} />
-                  <col style={{ width: "14%" }} />
-                  <col style={{ width: "34%" }} />
-                  <col style={{ width: "10%" }} />
-                  <col style={{ width: "10%" }} />
-                  <col style={{ width: "10%" }} />
-                  <col style={{ width: "12%" }} />
+                  <col style={{ width: "22%" }} />
+                  <col style={{ width: "8%" }} />
+                  <col style={{ width: "8%" }} />
+                  <col style={{ width: "8%" }} />
+                  <col style={{ width: "8%" }} />
+                  <col style={{ width: "8%" }} />
+                  <col style={{ width: "6%" }} />
+                  <col style={{ width: "6%" }} />
                 </colgroup>
                 <thead>
                   <tr>
-                    <th className="num">{t("ref.colId")}</th>
+                    <th>{t("ref.colKey")}</th>
                     <th>{t("ref.colDate")}</th>
                     <th>{t("ref.colCountry")}</th>
+                    <th className="num">{t("ref.cleaColVotes")}</th>
                     <th className="num">{t("ref.colSeats")}</th>
                     <th className="num">{t("ref.colSeatsPr")}</th>
                     <th className="num">{t("ref.colSeatsSmd")}</th>
+                    <th className="num">{t("ref.cleaColThr")}</th>
+                    <th>{t("ref.colSource")}</th>
                     <th>{t("ref.colOpen")}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {elections.map((row) => (
-                    <tr key={row.election_id}>
-                      <td className="num">{row.election_id}</td>
-                      <td>{row.election_date}</td>
-                      <td>
-                        {row.country_code} — {row.country_name}
+                  {unifiedElections.map((row) => (
+                    <tr key={row.election_key}>
+                      <td className="muted">
+                        {row.source === "parlgov" && row.parlgov_election_id != null
+                          ? row.parlgov_election_id
+                          : row.election_key}
                       </td>
+                      <td>{row.election_date}</td>
+                      <td>{row.election_label ?? "—"}</td>
+                      <td className="num">{row.votes_valid ?? "—"}</td>
                       <td className="num">{row.seats_total ?? "—"}</td>
-                      <td className="num">—</td>
-                      <td className="num">—</td>
+                      <td className="num">{row.seats_pr_tier ?? "—"}</td>
+                      <td className="num">{row.seats_constituency_tier ?? "—"}</td>
+                      <td className="num">
+                        {row.threshold_percent != null
+                          ? `${row.threshold_percent}%`
+                          : "—"}
+                      </td>
+                      <td>{row.source}</td>
                       <td>
                         <button
                           type="button"
                           className="btn"
-                          onClick={() => void onPickElection(row.election_id)}
+                          onClick={() => void onPickUnified(row)}
                         >
                           {t("ref.choose")}
                         </button>
@@ -456,100 +467,13 @@ export function Reference() {
                   type="button"
                   className="btn"
                   disabled={listBusy}
-                  onClick={() => void loadElections(elections.length, true)}
+                  onClick={() => void loadUnifiedElections(unifiedElections.length, true)}
                 >
                   {t("ref.loadMore")}
                 </button>
               </p>
             ) : null}
           </section>
-
-          {cleaEnabled(status) ? (
-            <section className="panel">
-              <h2 className="panel-title">{t("ref.cleaTitle")}</h2>
-              <p className="muted">{t("ref.cleaLead")}</p>
-              <p className="row-actions">
-                <a className="btn btn-secondary" href={cleaDuckdbDownloadHref()} download>
-                  {t("ref.cleaDownloadDuckdb")}
-                </a>
-              </p>
-              {cleaListBusy && !cleaElections.length ? (
-                <p className="muted">{t("ref.loadingList")}</p>
-              ) : null}
-              <div className="table-wrap">
-                <table className="data table-ref-pick">
-                  <colgroup>
-                    <col style={{ width: "18%" }} />
-                    <col style={{ width: "10%" }} />
-                    <col style={{ width: "18%" }} />
-                    <col style={{ width: "10%" }} />
-                    <col style={{ width: "8%" }} />
-                    <col style={{ width: "8%" }} />
-                    <col style={{ width: "8%" }} />
-                    <col style={{ width: "8%" }} />
-                    <col style={{ width: "12%" }} />
-                  </colgroup>
-                  <thead>
-                    <tr>
-                      <th>{t("ref.cleaColKey")}</th>
-                      <th>{t("ref.colDate")}</th>
-                      <th>{t("ref.colCountry")}</th>
-                      <th className="num">{t("ref.cleaColVotes")}</th>
-                      <th className="num">{t("ref.colSeats")}</th>
-                      <th className="num">{t("ref.colSeatsPr")}</th>
-                      <th className="num">{t("ref.colSeatsSmd")}</th>
-                      <th className="num">{t("ref.cleaColThr")}</th>
-                      <th>{t("ref.colOpen")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cleaElections.map((row) => (
-                      <tr key={row.election_key}>
-                        <td className="muted">{row.election_key}</td>
-                        <td>{row.election_date}</td>
-                        <td>{row.country_label ?? "—"}</td>
-                        <td className="num">{row.votes_valid ?? "—"}</td>
-                        <td className="num">{row.seats_total ?? "—"}</td>
-                        <td className="num">{row.seats_pr_tier ?? "—"}</td>
-                        <td className="num">{row.seats_constituency_tier ?? "—"}</td>
-                        <td className="num">
-                          {row.threshold_percent != null
-                            ? `${row.threshold_percent}%`
-                            : "—"}
-                        </td>
-                        <td>
-                          <button
-                            type="button"
-                            className="btn"
-                            onClick={() => void onPickCleaElection(row.election_key)}
-                          >
-                            {t("ref.choose")}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {canLoadMoreClea ? (
-                <p className="row-actions">
-                  <button
-                    type="button"
-                    className="btn"
-                    disabled={cleaListBusy}
-                    onClick={() => void loadCleaElections(cleaElections.length, true)}
-                  >
-                    {t("ref.loadMore")}
-                  </button>
-                </p>
-              ) : null}
-            </section>
-          ) : status && !(status.clea as { enabled?: boolean })?.enabled ? (
-            <section className="panel">
-              <h2 className="panel-title">{t("ref.cleaTitle")}</h2>
-              <p className="muted">{t("ref.cleaDisabled")}</p>
-            </section>
-          ) : null}
 
           {detailBusy ? <p className="muted">{t("ref.loadingDetail")}</p> : null}
 
