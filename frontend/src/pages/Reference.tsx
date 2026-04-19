@@ -401,28 +401,20 @@ export function Reference() {
             <div className="table-wrap">
               <table className="data table-ref-pick">
                 <colgroup>
-                  <col style={{ width: "16%" }} />
+                  <col style={{ width: "12%" }} />
+                  <col style={{ width: "13%" }} />
+                  <col style={{ width: "45%" }} />
+                  <col style={{ width: "12%" }} />
                   <col style={{ width: "10%" }} />
-                  <col style={{ width: "22%" }} />
                   <col style={{ width: "8%" }} />
-                  <col style={{ width: "8%" }} />
-                  <col style={{ width: "8%" }} />
-                  <col style={{ width: "8%" }} />
-                  <col style={{ width: "8%" }} />
-                  <col style={{ width: "6%" }} />
-                  <col style={{ width: "6%" }} />
                 </colgroup>
                 <thead>
                   <tr>
                     <th>{t("ref.colKey")}</th>
                     <th>{t("ref.colDate")}</th>
                     <th>{t("ref.colCountry")}</th>
-                    <th className="num">{t("ref.cleaColVotes")}</th>
                     <th className="num">{t("ref.colSeats")}</th>
-                    <th className="num">{t("ref.colSeatsPr")}</th>
-                    <th className="num">{t("ref.colSeatsSmd")}</th>
                     <th className="num">{t("ref.cleaColThr")}</th>
-                    <th>{t("ref.colSource")}</th>
                     <th>{t("ref.colOpen")}</th>
                   </tr>
                 </thead>
@@ -436,20 +428,16 @@ export function Reference() {
                       </td>
                       <td>{row.election_date}</td>
                       <td>{row.election_label ?? "—"}</td>
-                      <td className="num">{row.votes_valid ?? "—"}</td>
                       <td className="num">{row.seats_total ?? "—"}</td>
-                      <td className="num">{row.seats_pr_tier ?? "—"}</td>
-                      <td className="num">{row.seats_constituency_tier ?? "—"}</td>
                       <td className="num">
                         {row.threshold_percent != null
                           ? `${row.threshold_percent}%`
                           : "—"}
                       </td>
-                      <td>{row.source}</td>
                       <td>
                         <button
                           type="button"
-                          className="btn"
+                          className="btn btn-sm"
                           onClick={() => void onPickUnified(row)}
                         >
                           {t("ref.choose")}
