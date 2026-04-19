@@ -120,8 +120,9 @@ function MandateHeat({
   labels: string[];
 }) {
   const matrix = rows.map((r) => keys.map((k) => Number(r[k] as number)));
-  const flat = matrix.flat();
-  const max = Math.max(1, ...flat);
+  const colMaxes = keys.map((_, ki) =>
+    Math.max(1, ...matrix.map((row) => row[ki])),
+  );
   return (
     <div className="panel">
       <div className="table-wrap">
@@ -148,7 +149,7 @@ function MandateHeat({
                 <td className="data-results__party-cell">{r.party}</td>
                 {keys.map((k, ki) => {
                   const v = matrix[ri][ki];
-                  const alpha = 0.12 + (v / max) * 0.55;
+                  const alpha = 0.08 + (v / colMaxes[ki]) * 0.6;
                   return (
                     <td
                       key={String(k)}
