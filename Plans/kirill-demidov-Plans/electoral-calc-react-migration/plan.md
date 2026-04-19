@@ -130,3 +130,13 @@ APPROVED: 2026-04-19 | claude-sonnet-4-6
 
 - `python3 -m py_compile app/clea_duckdb.py app/parlgov_duckdb.py`; `npm run build` в `frontend/`.
 - После деплоя/обновления кода: **обновить CLEA** (кнопка в UI или POST refresh), убедиться, что в таблице и в деталке отображаются числа разбивки, а не плейсхолдеры SQL.
+
+---
+
+## 10. Текущее состояние (пауза)
+
+**Git / прод:** последние коммиты в `master` включают справочник ParlGov+CLEA, разбивку мест по MAG, фикс суммы % (`percentSum.ts`, именованные строки + epsilon), демо `data/clea/clea.csv`, volume `data/clea` в `docker-compose`, исправление **`ctr_n_src`** в `clea_norm` для `country_label`. На дроплете **159.223.0.234** `/opt/mandate-allocation-calculator`: после `git pull` выполнять **`chown -R 1000:1000 data/clea`**, иначе запись `clea_aggregated.duckdb` падает по правам.
+
+**CLEA vs один DuckDB:** сейчас **ParlGov** → `parlgov.duckdb`, **CLEA** → отдельный файл (по умолчанию рядом с CSV или `CLEA_DUCKDB_PATH`). Объединение в один файл возможно, но не сделано (риски: два `connect` на один файл, порядок refresh). Сообщение «CLEA не подключён» на UI = бэкенд не видит CSV (часто локальный dev без `CLEA_DATA_DIR` / без каталога `data/clea`).
+
+**Отложено / идеи:** эталонные цифры по Бельгии (скрин с Хэйр/Друп/…) на странице результатов — ждут **год, число мест, полный список %** или источник; опционально регрессионный тест в `backend/tests/`. При желании — env для записи CLEA в тот же файл, что ParlGov.
