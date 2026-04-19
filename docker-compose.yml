@@ -3,6 +3,7 @@ services:
     build: ./backend
     environment:
       CORS_ORIGINS: ${CORS_ORIGINS:-}
+      PARLGOV_DATA_DIR: /app/data/parlgov
     expose:
       - "8000"
 

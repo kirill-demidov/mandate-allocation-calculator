@@ -4,6 +4,7 @@ import { Shell } from "./layout/Shell";
 import { AbsoluteVotesForm } from "./pages/AbsoluteVotesForm";
 import { Landing } from "./pages/Landing";
 import { Calculator } from "./pages/Calculator";
+import { Reference } from "./pages/Reference";
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
         <Route element={<Shell />}>
           <Route path="/" element={<Landing />} />
           <Route path="/app/votes" element={<AbsoluteVotesForm />} />
+          <Route path="/reference" element={<Reference />} />
           <Route path="/app" element={<Calculator />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

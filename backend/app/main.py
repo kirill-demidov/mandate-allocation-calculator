@@ -12,6 +12,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
 from app.calc import calculate_mandates
+from app.reference_api import router as reference_router
 
 METHOD_KEYS = (
     "hare",
@@ -69,6 +70,7 @@ class CalculateResponse(BaseModel):
 
 
 app = FastAPI(title="Mandate allocation API", version="1.0.0")
+app.include_router(reference_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_parse_cors_origins(os.getenv("CORS_ORIGINS")),

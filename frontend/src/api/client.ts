@@ -1,4 +1,11 @@
-import type { CalculateRequest, CalculateResponse } from "./types";
+import type {
+  CalculateRequest,
+  CalculateResponse,
+  ReferenceCountry,
+  ReferenceElectionDetail,
+  ReferenceElectionsResponse,
+  ReferencePrefillResponse,
+} from "./types";
 
 const base = import.meta.env.VITE_API_BASE ?? "";
 
@@ -48,4 +55,53 @@ export async function downloadExcel(
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+export async function fetchReferenceStatus(): Promise<Record<string, unknown>> {
+  const res = await fetch(`${base}/api/reference/status`);
+  if (!res.ok) throw new Error(await parseError(res));
+  return (await res.json()) as Record<string, unknown>;
+}
+
+export async function fetchReferenceCountries(): Promise<ReferenceCountry[]> {
+  const res = await fetch(`${base}/api/reference/countries`);
+  if (!res.ok) throw new Error(await parseError(res));
+  return (await res.json()) as ReferenceCountry[];
+}
+
+export async function fetchReferenceElections(
+  countryId: number,
+  limit: number,
+  offset: number,
+): Promise<ReferenceElectionsResponse> {
+  const q = new URLSearchParams({
+    country_id: String(countryId),
+    limit: String(limit),
+    offset: String(offset),
+  });
+  const res = await fetch(`${base}/api/reference/elections?${q}`);
+  if (!res.ok) throw new Error(await parseError(res));
+  return (await res.json()) as ReferenceElectionsResponse;
+}
+
+export async function fetchReferenceElectionDetail(
+  electionId: number,
+): Promise<ReferenceElectionDetail> {
+  const res = await fetch(`${base}/api/reference/election/${electionId}`);
+  if (!res.ok) throw new Error(await parseError(res));
+  return (await res.json()) as ReferenceElectionDetail;
+}
+
+export async function fetchReferencePrefill(
+  electionId: number,
+  thresholdPercent: number,
+): Promise<ReferencePrefillResponse> {
+  const q = new URLSearchParams({
+    threshold_percent: String(thresholdPercent),
+  });
+  const res = await fetch(
+    `${base}/api/reference/election/${electionId}/prefill?${q.toString()}`,
+  );
+  if (!res.ok) throw new Error(await parseError(res));
+  return (await res.json()) as ReferencePrefillResponse;
 }

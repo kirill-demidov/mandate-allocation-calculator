@@ -43,6 +43,9 @@ export function Landing() {
         <Link className="btn" to="/app/votes">
           {t("landing.ctaVotes")}
         </Link>
+        <Link className="btn btn-secondary" to="/reference">
+          {t("landing.ctaRef")}
+        </Link>
       </p>
     </article>
   );

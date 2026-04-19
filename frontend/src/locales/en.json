@@ -3,7 +3,38 @@
   "nav": {
     "landing": "About",
     "app": "Calculator (%)",
-    "votes": "From vote totals"
+    "votes": "From vote totals",
+    "reference": "Election reference"
+  },
+  "ref": {
+    "title": "Parliamentary election reference",
+    "lead": "Pick a country and an election to see vote shares and seats from ParlGov, then open the same parties in the calculator (shares are renormalized to sum to 100%).",
+    "attrib": "Source: ParlGov (Parliaments and governments database), development CSV, national parliament elections. Legal thresholds are not embedded—set one manually before opening the calculator.",
+    "loading": "Loading…",
+    "loadingList": "Loading elections…",
+    "loadingDetail": "Loading breakdown…",
+    "unavailable": "The reference is temporarily unavailable. Please try again later.",
+    "pickCountry": "Country",
+    "country": "Country",
+    "electionsTitle": "Elections (newest first)",
+    "colId": "ID",
+    "colDate": "Date",
+    "colCountry": "Country",
+    "colSeats": "Seats",
+    "colOpen": "Select",
+    "choose": "Show",
+    "loadMore": "Load more",
+    "detailTitle": "Parties",
+    "seatsTotal": "Parliament size: {{n}}",
+    "votesValid": "valid votes: {{n}}",
+    "thresholdHint": "Electoral thresholds are not read from the dataset—enter one manually (percent), as in the calculator.",
+    "thresholdLabel": "Threshold for calculator (%)",
+    "colParty": "Party",
+    "colShare": "Share (%)",
+    "colSeatsParlgov": "Seats (ParlGov)",
+    "colVotesEst": "Votes (estimate)",
+    "openCalc": "Open in calculator",
+    "toCalcBlank": "Blank calculator"
   },
   "footer": "For learning and analysis—not an official tally or a legal election forecast.",
   "footerAuthor": "Author:",
@@ -23,7 +54,8 @@
     "methodsTitle": "The five rules—in one paragraph",
     "methodsList": "Hare and Droop use quotas and remainders; Sainte-Laguë, D'Hondt, and Imperiali hand out seats one by one to whoever currently has the strongest votes-per-seat ratio. Longer notes and links live on the calculator page.",
     "cta": "Work with percentages",
-    "ctaVotes": "I have vote counts, not %"
+    "ctaVotes": "I have vote counts, not %",
+    "ctaRef": "Election reference (ParlGov)"
   },
   "votesForm": {
     "title": "From raw votes to percentages—automatically",

@@ -163,6 +163,13 @@ Workflow (`.github/workflows/deploy.yml`) при push в **`master`** или **`
 
 ---
 
+## Справочник выборов (ParlGov + DuckDB)
+
+На странице **`/reference`** загружаются CSV **ParlGov** (национальные выборы в парламент, EU и большинство OECD), в **DuckDB** строится локальная база; можно выбрать страну и выборы и **открыть партии в калькуляторе** (доли голосов перенормируются к сумме 100%). Юридический **электоральный порог** в выгрузке ParlGov не выделен — задаётся вручную на странице справочника перед переходом.
+
+- Первый запуск backend после деплоя может **скачать два больших CSV** (однократно в каталог `PARLGOV_DATA_DIR`, по умолчанию в образе `/app/data/parlgov`).  
+- Атрибуция: Döring, Quaas, Hesse, Manow — *Parliaments and governments database (ParlGov)*, [parlgov.org](https://www.parlgov.org/).
+
 ## Деплой на DigitalOcean + GitHub Actions (кратко)
 
 См. раздел **«Продакшен: electoral-calc.org»** выше: клон, `.env`, `docker compose`, nginx, certbot, секреты Actions.
@@ -172,8 +179,13 @@ Workflow (`.github/workflows/deploy.yml`) при push в **`master`** или **`
 - `GET /api/health` — проверка живости  
 - `POST /api/calculate` — JSON с партиями и настройками  
 - `POST /api/export.xlsx?lang=ru|en` — выгрузка таблицы в Excel  
+- `GET /api/reference/status` — состояние справочника ParlGov  
+- `GET /api/reference/countries` — список стран  
+- `GET /api/reference/elections?country_id=&limit=&offset=` — выборы страны  
+- `GET /api/reference/election/{id}` — партии и метаданные  
+- `GET /api/reference/election/{id}/prefill?threshold_percent=` — JSON для предзаполнения калькулятора  
 
-Схемы см. в `backend/app/main.py`.
+Схемы см. в `backend/app/main.py` и `backend/app/reference_api.py`.
 
 ## Legacy Streamlit
 

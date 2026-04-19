@@ -349,6 +349,17 @@ table.data.table-votes {
   table-layout: fixed;
 }
 
+table.data.table-ref-pick,
+table.data.table-ref-detail {
+  table-layout: fixed;
+  width: 100%;
+}
+
+table.data.table-ref-pick thead th,
+table.data.table-ref-pick tbody td {
+  white-space: nowrap;
+}
+
 /* Калькулятор — блок «Партии»: шапка совпадает с колонками ввода */
 table.data.data-calc-parties {
   table-layout: fixed;

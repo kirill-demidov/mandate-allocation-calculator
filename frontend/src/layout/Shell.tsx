@@ -40,6 +40,12 @@ export function Shell() {
             >
               {t("nav.votes")}
             </NavLink>
+            <NavLink
+              to="/reference"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
+              {t("nav.reference")}
+            </NavLink>
             <div className="lang-switch" role="group" aria-label="Language">
               <button
                 type="button"
