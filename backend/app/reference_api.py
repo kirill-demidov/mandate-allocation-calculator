@@ -1,4 +1,4 @@
-"""HTTP API для справочника выборов (ParlGov + CLEA, DuckDB)."""
+"""HTTP API для справочника выборов (ParlGov + CLEA, единый reference.duckdb)."""
 
 from __future__ import annotations
 
@@ -8,60 +8,36 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Path, Query
 from fastapi.responses import FileResponse
 
-from app.clea_duckdb import get_clea_store
-from app.parlgov_duckdb import get_store
+from app.reference_store import get_reference_store
 
 router = APIRouter(prefix="/api/reference", tags=["reference"])
 
 
 @router.post("/refresh")
 async def reference_refresh(
-    force: Annotated[bool, Query(description="Игнорировать Last-Modified / mtime и перекаать всё")] = False,
+    force: Annotated[bool, Query(description="Игнорировать Last-Modified / mtime и перекачать всё")] = False,
 ) -> dict[str, object]:
-    """Проверить ParlGov (HTTP) и CLEA (mtime CSV); при необходимости подтянуть данные и пересобрать DuckDB."""
-
-    def run_parlgov() -> dict[str, object]:
+    """Проверить ParlGov (HTTP) и CLEA (mtime CSV); при необходимости пересобрать reference.duckdb."""
+    def run() -> dict[str, object]:
         try:
-            return get_store().refresh(force=force)
+            return get_reference_store().refresh(force=force)
         except Exception as e:  # noqa: BLE001
-            return {"updated": False, "error": str(e)}
+            return {"parlgov": {"updated": False, "error": str(e)}, "clea": {}}
 
-    def run_clea() -> dict[str, object]:
-        try:
-            return get_clea_store().refresh(force=force)
-        except Exception as e:  # noqa: BLE001
-            return {"updated": False, "error": str(e)}
-
-    parlgov_result = await asyncio.to_thread(run_parlgov)
-    clea_result = await asyncio.to_thread(run_clea)
-
-    def reset_both_conns() -> None:
-        get_store().reset_connection()
-        get_clea_store().reset_connection()
-
-    await asyncio.to_thread(reset_both_conns)
-    status = {
-        "parlgov": await asyncio.to_thread(get_store().status),
-        "clea": await asyncio.to_thread(get_clea_store().status),
-    }
-    return {
-        "parlgov": parlgov_result,
-        "clea": clea_result,
-        "status": status,
-    }
+    result = await asyncio.to_thread(run)
+    status = await asyncio.to_thread(get_reference_store().status)
+    return {**result, "status": status}
 
 
 @router.get("/status")
 async def reference_status() -> dict[str, object]:
-    base = await asyncio.to_thread(get_store().status)
-    clea = await asyncio.to_thread(get_clea_store().status)
-    return {"parlgov": base, "clea": clea}
+    return await asyncio.to_thread(get_reference_store().status)
 
 
 @router.get("/countries")
 async def reference_countries() -> list[dict[str, object]]:
     try:
-        return await asyncio.to_thread(get_store().list_countries)
+        return await asyncio.to_thread(get_reference_store().list_countries)
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e)) from e
 
@@ -76,12 +52,12 @@ async def reference_unified_elections(
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> dict[str, object]:
-    """Список выборов из единой таблицы ref_party_election (ParlGov + CLEA в одном DuckDB)."""
+    """Список выборов из единой таблицы ref_party_election (ParlGov + CLEA в reference.duckdb)."""
     if source is not None and source not in ("parlgov", "clea"):
         raise HTTPException(status_code=400, detail="source должен быть parlgov или clea.")
     try:
         rows, total = await asyncio.to_thread(
-            get_store().list_unified_elections,
+            get_reference_store().list_unified_elections,
             country_id,
             date_from=date_from,
             date_to=date_to,
@@ -97,14 +73,14 @@ async def reference_unified_elections(
 
 @router.get("/duckdb")
 async def reference_download_duckdb() -> FileResponse:
-    """Скачать файл DuckDB со справочником (ParlGov + CLEA при объединённом хранении)."""
-    st = await asyncio.to_thread(get_store().status)
-    if not st.get("loaded"):
+    """Скачать единый файл reference.duckdb (ParlGov + CLEA)."""
+    st = await asyncio.to_thread(get_reference_store().status)
+    if not st.get("parlgov", {}).get("loaded"):
         raise HTTPException(
             status_code=503,
-            detail=str(st.get("error") or "ParlGov не загружен."),
+            detail=str(st.get("parlgov", {}).get("error") or "Справочник не загружен."),
         )
-    path = get_store().duckdb_file_path()
+    path = get_reference_store().duckdb_file_path()
     if not path.is_file():
         raise HTTPException(status_code=503, detail="Файл DuckDB не найден.")
     return FileResponse(
@@ -125,7 +101,7 @@ async def reference_elections(
 ) -> dict[str, object]:
     try:
         rows, total = await asyncio.to_thread(
-            get_store().list_elections,
+            get_reference_store().list_elections,
             country_id,
             date_from=date_from,
             date_to=date_to,
@@ -143,14 +119,12 @@ async def reference_election_detail(
     election_id: Annotated[int, Path(ge=1)],
 ) -> dict[str, object]:
     try:
-        detail = await asyncio.to_thread(get_store().election_detail, election_id)
+        detail = await asyncio.to_thread(get_reference_store().election_detail, election_id)
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e)) from e
     if not detail:
         raise HTTPException(status_code=404, detail="Выборы не найдены.")
-    detail = dict(detail)
-    detail["source"] = "parlgov"
-    return detail
+    return {**detail, "source": "parlgov"}
 
 
 @router.get("/election/{election_id:int}/prefill")
@@ -160,7 +134,7 @@ async def reference_election_prefill(
 ) -> dict[str, object]:
     try:
         return await asyncio.to_thread(
-            get_store().calculator_prefill,
+            get_reference_store().calculator_prefill,
             election_id,
             threshold_percent=threshold_percent,
         )
@@ -172,12 +146,13 @@ async def reference_election_prefill(
         raise HTTPException(status_code=400, detail="Некорректные данные для калькулятора.") from e
 
 
-# --- CLEA (окружной CSV → агрегат в DuckDB-файл) ---
+# --- CLEA ---
 
 
 @router.get("/clea/status")
 async def clea_status() -> dict[str, object]:
-    return await asyncio.to_thread(get_clea_store().status)
+    st = await asyncio.to_thread(get_reference_store().status)
+    return st.get("clea", {})
 
 
 @router.get("/clea/elections")
@@ -190,7 +165,7 @@ async def clea_elections(
 ) -> dict[str, object]:
     try:
         rows, total = await asyncio.to_thread(
-            get_clea_store().list_elections,
+            get_reference_store().clea_list_elections,
             date_from=date_from,
             date_to=date_to,
             q=q,
@@ -207,7 +182,7 @@ async def clea_detail(
     election_key: Annotated[str, Query(min_length=9, max_length=80)],
 ) -> dict[str, object]:
     try:
-        detail = await asyncio.to_thread(get_clea_store().election_detail, election_key)
+        detail = await asyncio.to_thread(get_reference_store().clea_election_detail, election_key)
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e)) from e
     if not detail:
@@ -222,7 +197,7 @@ async def clea_prefill(
 ) -> dict[str, object]:
     try:
         return await asyncio.to_thread(
-            get_clea_store().calculator_prefill,
+            get_reference_store().clea_calculator_prefill,
             election_key,
             threshold_percent=threshold_percent,
         )
@@ -232,25 +207,3 @@ async def clea_prefill(
         if str(e) == "election_not_found":
             raise HTTPException(status_code=404, detail="Выборы не найдены.") from e
         raise HTTPException(status_code=400, detail="Некорректные данные для калькулятора.") from e
-
-
-@router.get("/clea/duckdb")
-async def clea_download_duckdb() -> FileResponse:
-    """Обратная совместимость: при PARLGOV_DATA_DIR — тот же файл, что GET /api/reference/duckdb."""
-    st = await asyncio.to_thread(get_clea_store().status)
-    if not st.get("enabled"):
-        raise HTTPException(
-            status_code=503,
-            detail="CLEA не настроен или ошибка загрузки CSV.",
-        )
-    path = get_clea_store().duckdb_file_path()
-    if not path.is_file():
-        raise HTTPException(status_code=503, detail="Файл DuckDB ещё не создан.")
-    fname = (
-        "reference.duckdb" if path.name == "parlgov.duckdb" else "clea_aggregated.duckdb"
-    )
-    return FileResponse(
-        str(path),
-        filename=fname,
-        media_type="application/vnd.duckdb.file",
-    )
