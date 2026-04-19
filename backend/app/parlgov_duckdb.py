@@ -49,7 +49,7 @@ class ParlGovStore:
     """Один раз скачивает CSV и строит таблицы в файле DuckDB для быстрых повторных стартов."""
 
     def __init__(self) -> None:
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._con: duckdb.DuckDBPyConnection | None = None
         self._error: str | None = None
 
@@ -254,53 +254,55 @@ class ParlGovStore:
 
     def status(self) -> dict[str, object]:
         try:
-            con = self._ensure_loaded()
-            n_e = con.execute(
-                "SELECT COUNT(DISTINCT election_id) FROM parliament_elections"
-            ).fetchone()[0]
-            n_p = con.execute(
-                "SELECT COUNT(*) FROM parliament_elections"
-            ).fetchone()[0]
-            db_path = str(_data_dir() / "parlgov.duckdb")
-            ref_n = 0
-            try:
-                r0 = con.execute(
-                    """
-                    SELECT COUNT(*) FROM information_schema.tables
-                    WHERE table_schema = 'main' AND table_name = 'ref_party_election'
-                    """
-                ).fetchone()
-                if r0 and int(r0[0]) > 0:
-                    ref_n = int(
-                        con.execute(
-                            "SELECT COUNT(*) FROM ref_party_election"
-                        ).fetchone()[0]
-                    )
-            except Exception:  # noqa: BLE001
-                pass
-            return {
-                "loaded": True,
-                "elections_distinct": int(n_e),
-                "party_result_rows": int(n_p),
-                "duckdb_path": db_path,
-                "ref_party_election_rows": ref_n,
-                "source": "ParlGov development CSV (parlgov.org)",
-            }
+            with self._lock:
+                con = self._ensure_loaded()
+                n_e = con.execute(
+                    "SELECT COUNT(DISTINCT election_id) FROM parliament_elections"
+                ).fetchone()[0]
+                n_p = con.execute(
+                    "SELECT COUNT(*) FROM parliament_elections"
+                ).fetchone()[0]
+                db_path = str(_data_dir() / "parlgov.duckdb")
+                ref_n = 0
+                try:
+                    r0 = con.execute(
+                        """
+                        SELECT COUNT(*) FROM information_schema.tables
+                        WHERE table_schema = 'main' AND table_name = 'ref_party_election'
+                        """
+                    ).fetchone()
+                    if r0 and int(r0[0]) > 0:
+                        ref_n = int(
+                            con.execute(
+                                "SELECT COUNT(*) FROM ref_party_election"
+                            ).fetchone()[0]
+                        )
+                except Exception:  # noqa: BLE001
+                    pass
+                return {
+                    "loaded": True,
+                    "elections_distinct": int(n_e),
+                    "party_result_rows": int(n_p),
+                    "duckdb_path": db_path,
+                    "ref_party_election_rows": ref_n,
+                    "source": "ParlGov development CSV (parlgov.org)",
+                }
         except RuntimeError as e:
             return {"loaded": False, "error": str(e)}
 
     def list_countries(self) -> list[dict[str, object]]:
-        con = self._ensure_loaded()
-        rows = con.execute(
-            """
-            SELECT country_id, country_name_short, country_name
-            FROM (
-              SELECT DISTINCT country_id, country_name_short, country_name
-              FROM parliament_elections
-            ) t
-            ORDER BY country_name_short
-            """
-        ).fetchall()
+        with self._lock:
+            con = self._ensure_loaded()
+            rows = con.execute(
+                """
+                SELECT country_id, country_name_short, country_name
+                FROM (
+                  SELECT DISTINCT country_id, country_name_short, country_name
+                  FROM parliament_elections
+                ) t
+                ORDER BY country_name_short
+                """
+            ).fetchall()
         return [
             {"country_id": int(r[0]), "code": r[1], "name": r[2]}
             for r in rows
@@ -317,49 +319,50 @@ class ParlGovStore:
         limit: int = 40,
         offset: int = 0,
     ) -> tuple[list[dict[str, object]], int]:
-        con = self._ensure_loaded()
-        conds: list[str] = []
-        params: list[object] = []
-        if country_id is not None:
-            conds.append("country_id = ?")
-            params.append(country_id)
-        if date_from:
-            conds.append("election_date >= CAST(? AS DATE)")
-            params.append(date_from)
-        if date_to:
-            conds.append("election_date <= CAST(? AS DATE)")
-            params.append(date_to)
-        if q and q.strip():
-            like = f"%{q.strip().lower()}%"
-            conds.append(
-                "(LOWER(country_name) LIKE ? OR LOWER(country_name_short) LIKE ?)"
-            )
-            params.extend([like, like])
-        where_sql = " AND ".join(conds) if conds else "1=1"
-        total = con.execute(
-            f"""
-            SELECT COUNT(*) FROM (
-              SELECT DISTINCT election_id FROM parliament_elections
-              WHERE {where_sql}
-            ) s
-            """,
-            params,
-        ).fetchone()[0]
-        params2 = list(params)
-        params2.extend([limit, offset])
-        rows = con.execute(
-            f"""
-            SELECT election_id, election_date::VARCHAR AS election_date,
-                   country_name_short, country_name,
-                   MAX(seats_total) AS seats_total
-            FROM parliament_elections
-            WHERE {where_sql}
-            GROUP BY 1, 2, 3, 4
-            ORDER BY election_date DESC
-            LIMIT ? OFFSET ?
-            """,
-            params2,
-        ).fetchall()
+        with self._lock:
+            con = self._ensure_loaded()
+            conds: list[str] = []
+            params: list[object] = []
+            if country_id is not None:
+                conds.append("country_id = ?")
+                params.append(country_id)
+            if date_from:
+                conds.append("election_date >= CAST(? AS DATE)")
+                params.append(date_from)
+            if date_to:
+                conds.append("election_date <= CAST(? AS DATE)")
+                params.append(date_to)
+            if q and q.strip():
+                like = f"%{q.strip().lower()}%"
+                conds.append(
+                    "(LOWER(country_name) LIKE ? OR LOWER(country_name_short) LIKE ?)"
+                )
+                params.extend([like, like])
+            where_sql = " AND ".join(conds) if conds else "1=1"
+            total = con.execute(
+                f"""
+                SELECT COUNT(*) FROM (
+                  SELECT DISTINCT election_id FROM parliament_elections
+                  WHERE {where_sql}
+                ) s
+                """,
+                params,
+            ).fetchone()[0]
+            params2 = list(params)
+            params2.extend([limit, offset])
+            rows = con.execute(
+                f"""
+                SELECT election_id, election_date::VARCHAR AS election_date,
+                       country_name_short, country_name,
+                       MAX(seats_total) AS seats_total
+                FROM parliament_elections
+                WHERE {where_sql}
+                GROUP BY 1, 2, 3, 4
+                ORDER BY election_date DESC
+                LIMIT ? OFFSET ?
+                """,
+                params2,
+            ).fetchall()
         out = [
             {
                 "election_id": int(r[0]),
@@ -384,16 +387,6 @@ class ParlGovStore:
         offset: int = 0,
     ) -> tuple[list[dict[str, object]], int]:
         """Список выборов из ref_party_election (ParlGov + CLEA в одной таблице)."""
-        con = self._ensure_loaded()
-        self._ensure_ref_party_election(con)
-        has_clea_e = int(
-            con.execute(
-                """
-                SELECT COUNT(*) FROM information_schema.tables
-                WHERE table_schema = 'main' AND table_name = 'clea_elections'
-                """
-            ).fetchone()[0]
-        ) > 0
         conds: list[str] = ["1=1"]
         params: list[object] = []
         if country_id is not None:
@@ -433,51 +426,62 @@ class ParlGovStore:
             WHERE {where_sql}
             GROUP BY r.election_key
         """
-        total = con.execute(
-            f"SELECT COUNT(*) FROM ({base_sql}) t",
-            params,
-        ).fetchone()[0]
-        if has_clea_e:
-            outer = f"""
-            SELECT
-              b.election_key,
-              b.election_date::VARCHAR AS election_date,
-              b.election_label,
-              b.source,
-              b.threshold_pct,
-              b.n_parties,
-              ce.votes_valid,
-              COALESCE(ce.seats_total, b.seats_total_ref) AS seats_total,
-              ce.seats_pr_tier,
-              ce.seats_constituency_tier,
-              b.country_code
-            FROM ({base_sql}) b
-            LEFT JOIN clea_elections ce
-              ON ce.election_key = b.election_key AND b.source = 'clea'
-            ORDER BY b.election_date DESC NULLS LAST
-            LIMIT ? OFFSET ?
-            """
-        else:
-            outer = f"""
-            SELECT
-              b.election_key,
-              b.election_date::VARCHAR AS election_date,
-              b.election_label,
-              b.source,
-              b.threshold_pct,
-              b.n_parties,
-              CAST(NULL AS BIGINT) AS votes_valid,
-              b.seats_total_ref AS seats_total,
-              CAST(NULL AS INTEGER) AS seats_pr_tier,
-              CAST(NULL AS INTEGER) AS seats_constituency_tier,
-              b.country_code
-            FROM ({base_sql}) b
-            ORDER BY b.election_date DESC NULLS LAST
-            LIMIT ? OFFSET ?
-            """
-        params2 = list(params)
-        params2.extend([limit, offset])
-        rows = con.execute(outer, params2).fetchall()
+        with self._lock:
+            con = self._ensure_loaded()
+            self._ensure_ref_party_election(con)
+            has_clea_e = int(
+                con.execute(
+                    """
+                    SELECT COUNT(*) FROM information_schema.tables
+                    WHERE table_schema = 'main' AND table_name = 'clea_elections'
+                    """
+                ).fetchone()[0]
+            ) > 0
+            total = con.execute(
+                f"SELECT COUNT(*) FROM ({base_sql}) t",
+                params,
+            ).fetchone()[0]
+            if has_clea_e:
+                outer = f"""
+                SELECT
+                  b.election_key,
+                  b.election_date::VARCHAR AS election_date,
+                  b.election_label,
+                  b.source,
+                  b.threshold_pct,
+                  b.n_parties,
+                  ce.votes_valid,
+                  COALESCE(ce.seats_total, b.seats_total_ref) AS seats_total,
+                  ce.seats_pr_tier,
+                  ce.seats_constituency_tier,
+                  b.country_code
+                FROM ({base_sql}) b
+                LEFT JOIN clea_elections ce
+                  ON ce.election_key = b.election_key AND b.source = 'clea'
+                ORDER BY b.election_date DESC NULLS LAST
+                LIMIT ? OFFSET ?
+                """
+            else:
+                outer = f"""
+                SELECT
+                  b.election_key,
+                  b.election_date::VARCHAR AS election_date,
+                  b.election_label,
+                  b.source,
+                  b.threshold_pct,
+                  b.n_parties,
+                  CAST(NULL AS BIGINT) AS votes_valid,
+                  b.seats_total_ref AS seats_total,
+                  CAST(NULL AS INTEGER) AS seats_pr_tier,
+                  CAST(NULL AS INTEGER) AS seats_constituency_tier,
+                  b.country_code
+                FROM ({base_sql}) b
+                ORDER BY b.election_date DESC NULLS LAST
+                LIMIT ? OFFSET ?
+                """
+            params2 = list(params)
+            params2.extend([limit, offset])
+            rows = con.execute(outer, params2).fetchall()
         out: list[dict[str, object]] = []
         for r in rows:
             ek = str(r[0])
@@ -512,50 +516,60 @@ class ParlGovStore:
         return _data_dir() / "parlgov.duckdb"
 
     def election_detail(self, election_id: int) -> dict[str, object] | None:
-        con = self._ensure_loaded()
-        meta = con.execute(
-            """
-            SELECT em.id, em.date::VARCHAR, em.seats_total, em.votes_valid
-            FROM election_meta em
-            WHERE CAST(em.id AS BIGINT) = ?
-            """,
-            [election_id],
-        ).fetchone()
-        rows = con.execute(
-            """
-            SELECT party_name_english, party_name, party_name_short,
-                   vote_share, seats
-            FROM parliament_elections
-            WHERE election_id = ?
-            ORDER BY vote_share DESC NULLS LAST
-            """,
-            [election_id],
-        ).fetchall()
-        if not rows:
-            return None
-        votes_valid: int | None = None
-        seats_total: int | None = None
-        election_date: str | None = None
-        if meta:
-            election_date = str(meta[1]) if meta[1] else None
-            try:
-                seats_total = int(float(meta[2])) if meta[2] not in (None, "") else None
-            except (TypeError, ValueError):
-                seats_total = None
-            try:
-                votes_valid = int(float(meta[3])) if meta[3] not in (None, "") else None
-            except (TypeError, ValueError):
-                votes_valid = None
-        if seats_total is None:
-            try:
-                seats_total = int(
-                    con.execute(
-                        "SELECT MAX(seats_total) FROM parliament_elections WHERE election_id = ?",
-                        [election_id],
-                    ).fetchone()[0]
-                )
-            except (TypeError, ValueError):
-                seats_total = None
+        with self._lock:
+            con = self._ensure_loaded()
+            meta = con.execute(
+                """
+                SELECT em.id, em.date::VARCHAR, em.seats_total, em.votes_valid
+                FROM election_meta em
+                WHERE CAST(em.id AS BIGINT) = ?
+                """,
+                [election_id],
+            ).fetchone()
+            rows = con.execute(
+                """
+                SELECT party_name_english, party_name, party_name_short,
+                       vote_share, seats
+                FROM parliament_elections
+                WHERE election_id = ?
+                ORDER BY vote_share DESC NULLS LAST
+                """,
+                [election_id],
+            ).fetchall()
+            if not rows:
+                return None
+            votes_valid: int | None = None
+            seats_total: int | None = None
+            election_date: str | None = None
+            if meta:
+                election_date = str(meta[1]) if meta[1] else None
+                try:
+                    seats_total = int(float(meta[2])) if meta[2] not in (None, "") else None
+                except (TypeError, ValueError):
+                    seats_total = None
+                try:
+                    votes_valid = int(float(meta[3])) if meta[3] not in (None, "") else None
+                except (TypeError, ValueError):
+                    votes_valid = None
+            if seats_total is None:
+                try:
+                    seats_total = int(
+                        con.execute(
+                            "SELECT MAX(seats_total) FROM parliament_elections WHERE election_id = ?",
+                            [election_id],
+                        ).fetchone()[0]
+                    )
+                except (TypeError, ValueError):
+                    seats_total = None
+            head = con.execute(
+                """
+                SELECT country_name_short, country_name, election_date::VARCHAR
+                FROM parliament_elections
+                WHERE election_id = ?
+                LIMIT 1
+                """,
+                [election_id],
+            ).fetchone()
         parties: list[dict[str, object]] = []
         for r in rows:
             en, name, short, vs, seats = r
@@ -570,15 +584,6 @@ class ParlGovStore:
                     else None,
                 }
             )
-        head = con.execute(
-            """
-            SELECT country_name_short, country_name, election_date::VARCHAR
-            FROM parliament_elections
-            WHERE election_id = ?
-            LIMIT 1
-            """,
-            [election_id],
-        ).fetchone()
         return {
             "election_id": election_id,
             "election_date": election_date or (str(head[2]) if head else None),
