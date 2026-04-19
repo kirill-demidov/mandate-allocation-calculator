@@ -133,10 +133,12 @@ APPROVED: 2026-04-19 | claude-sonnet-4-6
 
 ---
 
-## 10. Текущее состояние (пауза)
+## 10. Текущее состояние
 
-**Git / прод:** последние коммиты в `master` включают справочник ParlGov+CLEA, разбивку мест по MAG, фикс суммы % (`percentSum.ts`, именованные строки + epsilon), демо `data/clea/clea.csv`, volume `data/clea` в `docker-compose`, исправление **`ctr_n_src`** в `clea_norm` для `country_label`. На дроплете **159.223.0.234** `/opt/mandate-allocation-calculator`: после `git pull` выполнять **`chown -R 1000:1000 data/clea`**, иначе запись `clea_aggregated.duckdb` падает по правам.
+**Git / прод:** справочник ParlGov+CLEA, MAG, порог, разбивка мест, фикс суммы %, демо `data/clea/clea.csv`, volume в `docker-compose`, **`ctr_n_src`** в `clea_norm`. На дроплете после `git pull`: **`chown -R 1000:1000 data/clea`** при проблемах с правами на DuckDB.
 
-**CLEA vs один DuckDB:** сейчас **ParlGov** → `parlgov.duckdb`, **CLEA** → отдельный файл (по умолчанию рядом с CSV или `CLEA_DUCKDB_PATH`). Объединение в один файл возможно, но не сделано (риски: два `connect` на один файл, порядок refresh). Сообщение «CLEA не подключён» на UI = бэкенд не видит CSV (часто локальный dev без `CLEA_DATA_DIR` / без каталога `data/clea`).
+**CLEA vs один DuckDB:** два файла (`parlgov.duckdb` и агрегат CLEA) — см. §9.5. «CLEA не подключён» в UI = нет CSV в `CLEA_DATA_DIR` (часто локальный dev без каталога).
 
-**Отложено / идеи:** эталонные цифры по Бельгии (скрин с Хэйр/Друп/…) на странице результатов — ждут **год, число мест, полный список %** или источник; опционально регрессионный тест в `backend/tests/`. При желании — env для записи CLEA в тот же файл, что ParlGov.
+**Сделано при продолжении:** `backend/tests/test_calc_regression.py` (unittest) — суммы по методам, порог, эталон Хэйра 60/40 при 5 мандатах; workflow `.github/workflows/tests.yml` на push/PR.
+
+**Отложено:** эталон Бельгии в UI — нужны полные входные данные; опционально один общий DuckDB через `CLEA_DUCKDB_PATH`.
