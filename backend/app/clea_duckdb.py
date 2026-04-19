@@ -312,11 +312,12 @@ class CleaStore:
         mag_filter_sql = ""
         if pr_only_active:
             mag_filter_sql = " AND (z.mag IS NOT NULL AND z.mag > 1)"
-        ctr_n_sql = (
-            f"MAX(TRIM(CAST({_qid(c_ctr_n)} AS VARCHAR)))"
+        ctr_n_src_col = (
+            f", TRIM(CAST({_qid(c_ctr_n)} AS VARCHAR)) AS ctr_n_src"
             if c_ctr_n
-            else "CAST(MIN(ctr) AS VARCHAR)"
+            else ""
         )
+        ctr_n_sql = "MAX(ctr_n_src)" if c_ctr_n else "CAST(MIN(ctr) AS VARCHAR)"
 
         con.execute("DROP VIEW IF EXISTS clea_norm")
         con.execute(
@@ -335,6 +336,7 @@ class CleaStore:
                 {seat_sql} AS seat,
                 {thr_sql} AS thr_val,
                 {mag_sql} AS mag
+                {ctr_n_src_col}
               FROM _clea_raw
               WHERE TRY_CAST({_qid(c_ctr)} AS INTEGER) IS NOT NULL
                 AND TRY_CAST({_qid(c_yr)} AS INTEGER) IS NOT NULL
