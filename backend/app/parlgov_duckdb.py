@@ -147,7 +147,15 @@ class ParlGovStore:
             ve_path = ddir / "view_election.csv"
             el_path = ddir / "election.csv"
             db_path = ddir / "parlgov.duckdb"
+            wal_path = ddir / "parlgov.duckdb.wal"
             try:
+                if wal_path.exists():
+                    logger.warning(
+                        "Stale DuckDB WAL detected (%s bytes) — removing DB and WAL to rebuild from CSV",
+                        wal_path.stat().st_size,
+                    )
+                    wal_path.unlink(missing_ok=True)
+                    db_path.unlink(missing_ok=True)
                 if not ve_path.is_file() or not el_path.is_file():
                     logger.info("ParlGov: downloading CSV (first run may take a few minutes)")
                     self._download(VIEW_ELECTION_CSV, ve_path)

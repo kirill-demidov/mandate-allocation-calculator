@@ -149,3 +149,31 @@ APPROVED: 2026-04-19 | claude-sonnet-4-6
 **Сделано при продолжении:** `backend/tests/test_calc_regression.py`; **`backend/tests/test_reference_unified.py`** — пересборка `ref_party_election` (ParlGov-only, CLEA-only, UNION + DETACH); workflow `.github/workflows/tests.yml` на push/PR.
 
 **Отложено:** эталон Бельгии в UI — нужны полные входные данные CLEA/ParlGov для сценария.
+
+---
+
+## 11. Исправление локального окружения (2026-04-19)
+
+**Проблема:** бэкенд локально «не отвечал» — фронтенд получал 404.
+
+**Причина:** порт `8000` занят сторонним процессом (`/Users/kirilldemidov/playground/gdelt/server.py`). Vite dev-proxy смотрел на `127.0.0.1:8000`, поэтому запросы `/api/*` уходили в чужой сервер и получали `{"detail":"Not Found"}`.
+
+**Исправлено:**
+- `frontend/vite.config.ts` — proxy target изменён с `8000` → `8001`
+- `README.md` — инструкция локального запуска обновлена: `--port 8001`
+
+**Старт локально (актуальный):**
+```bash
+# Бэкенд
+cd backend && uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
+
+# Фронтенд (в другом терминале)
+cd frontend && npm run dev
+```
+Затем перезапустить Vite-сервер (если уже запущен) — изменение proxy вступает в силу только после рестарта.
+
+**Прод (DigitalOcean):** инфраструктура в коде корректна. Если прод не работает — проверить:
+1. Запущены ли контейнеры: `docker compose ps` на дроплете
+2. Настроен ли nginx: `cat /etc/nginx/sites-enabled/electoral-calc*`
+3. Сертификат: `certbot certificates`
+4. Логи: `docker compose logs backend` — нет ли ошибок при старте
