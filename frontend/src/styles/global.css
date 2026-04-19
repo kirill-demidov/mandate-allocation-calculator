@@ -202,6 +202,25 @@ main.shell-main {
   color: var(--ink);
 }
 
+.ref-detail-split-title {
+  margin: 1.15rem 0 0.35rem;
+  font-size: 1rem;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.ref-detail-split-lead {
+  margin: 0 0 0.75rem;
+}
+
+.table-ref-detail .ref-detail-tfoot th,
+.table-ref-detail .ref-detail-tfoot td {
+  border-top: 2px solid var(--line);
+  font-weight: 600;
+  background: rgba(31, 58, 95, 0.06);
+}
+
 .grid-2 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

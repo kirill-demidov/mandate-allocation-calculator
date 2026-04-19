@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { calculate, downloadExcel } from "../api/client";
 import type { CalculateRequest, MandateRow } from "../api/types";
 import type { CalculatorPrefillState } from "../types/calculatorPrefill";
+import { isPercentSumOver100, sumVotePercentsNamedOnly } from "../utils/percentSum";
 
 type PartyDraft = { id: string; name: string; votePercent: string };
 
@@ -200,12 +201,7 @@ export function Calculator() {
     setError(null);
   }, [location.state]);
 
-  const sumPct = useMemo(() => {
-    return parties.reduce((acc, p) => {
-      const v = parsePct(p.votePercent);
-      return acc + (v ?? 0);
-    }, 0);
-  }, [parties]);
+  const sumPct = useMemo(() => sumVotePercentsNamedOnly(parties), [parties]);
 
   const requestBody = useMemo((): CalculateRequest | null => {
     const ps: { name: string; vote_percent: number }[] = [];
@@ -230,7 +226,7 @@ export function Calculator() {
       setError(t("calc.needParty"));
       return;
     }
-    if (sumPct > 100 + 1e-9) {
+    if (isPercentSumOver100(sumPct)) {
       setError(t("calc.sumError"));
       return;
     }
@@ -298,7 +294,7 @@ export function Calculator() {
         <p className="muted">
           {t("calc.sumVotes")}: {sumPct.toFixed(2)}%
         </p>
-        {sumPct > 100 + 1e-9 ? <div className="error">{t("calc.sumError")}</div> : null}
+        {isPercentSumOver100(sumPct) ? <div className="error">{t("calc.sumError")}</div> : null}
 
         <div className="table-wrap">
           <table className="data data-calc-parties">
@@ -376,7 +372,7 @@ export function Calculator() {
           <button
             type="button"
             className="btn btn-primary"
-            disabled={busy || sumPct > 100 + 1e-9}
+            disabled={busy || isPercentSumOver100(sumPct)}
             onClick={() => void onCalculate()}
           >
             {t("calc.calculate")}
@@ -384,7 +380,7 @@ export function Calculator() {
           <button
             type="button"
             className="btn"
-            disabled={busy || !requestBody || sumPct > 100 + 1e-9}
+            disabled={busy || !requestBody || isPercentSumOver100(sumPct)}
             onClick={() => void onExport()}
           >
             {t("calc.export")}

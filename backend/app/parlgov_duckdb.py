@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import threading
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 
 import duckdb
@@ -34,6 +35,75 @@ class ParlGovStore:
         self._lock = threading.Lock()
         self._con: duckdb.DuckDBPyConnection | None = None
         self._error: str | None = None
+
+    def _close_conn(self) -> None:
+        if self._con is not None:
+            try:
+                self._con.close()
+            except Exception:  # noqa: BLE001
+                pass
+            self._con = None
+
+    def _materialize_parliament(
+        self, con: duckdb.DuckDBPyConnection, ve_path: Path, el_path: Path
+    ) -> None:
+        con.execute(
+            """
+            CREATE OR REPLACE TABLE view_election AS
+            SELECT * FROM read_csv_auto(?, ALL_VARCHAR=TRUE)
+            """,
+            [str(ve_path)],
+        )
+        con.execute(
+            """
+            CREATE OR REPLACE TABLE election_meta AS
+            SELECT * FROM read_csv_auto(?, ALL_VARCHAR=TRUE)
+            """,
+            [str(el_path)],
+        )
+        con.execute(
+            f"""
+            CREATE OR REPLACE VIEW parliament_elections AS
+            SELECT
+              CAST(election_id AS BIGINT) AS election_id,
+              TRY_CAST(election_date AS DATE) AS election_date,
+              CAST(country_id AS BIGINT) AS country_id,
+              country_name_short,
+              country_name,
+              CAST(seats_total AS INTEGER) AS seats_total,
+              party_id,
+              party_name_short,
+              party_name,
+              NULLIF(TRIM(party_name_english), '') AS party_name_english,
+              TRY_CAST(vote_share AS DOUBLE) AS vote_share,
+              TRY_CAST(seats AS INTEGER) AS seats
+            FROM view_election
+            WHERE lower(trim(election_type)) = '{PARL_TYPE_PARLIAMENT}'
+              AND election_id IS NOT NULL AND trim(election_id) <> ''
+              AND TRY_CAST(vote_share AS DOUBLE) IS NOT NULL
+            """
+        )
+
+    def _remote_newer_than_local(
+        self, client: httpx.Client, url: str, local: Path
+    ) -> bool:
+        """True — стоит скачать заново (локального файла нет или Last-Modified на сервере новее)."""
+        if not local.is_file():
+            return True
+        try:
+            r = client.head(url, follow_redirects=True, timeout=60.0)
+            r.raise_for_status()
+        except Exception:
+            return True
+        lm = r.headers.get("last-modified")
+        if not lm:
+            return False
+        try:
+            dt = parsedate_to_datetime(lm)
+            remote_ts = dt.timestamp()
+        except (TypeError, ValueError, OSError):
+            return True
+        return remote_ts > local.stat().st_mtime + 2.0
 
     def _download(self, url: str, dest: Path) -> None:
         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -68,42 +138,7 @@ class ParlGovStore:
                     "SELECT COUNT(*) FROM duckdb_views() WHERE view_name = 'parliament_elections'"
                 ).fetchone()[0]
                 if int(has) == 0:
-                    con.execute(
-                        """
-                        CREATE OR REPLACE TABLE view_election AS
-                        SELECT * FROM read_csv_auto(?, ALL_VARCHAR=TRUE)
-                        """,
-                        [str(ve_path)],
-                    )
-                    con.execute(
-                        """
-                        CREATE OR REPLACE TABLE election_meta AS
-                        SELECT * FROM read_csv_auto(?, ALL_VARCHAR=TRUE)
-                        """,
-                        [str(el_path)],
-                    )
-                    con.execute(
-                        f"""
-                        CREATE OR REPLACE VIEW parliament_elections AS
-                        SELECT
-                          CAST(election_id AS BIGINT) AS election_id,
-                          TRY_CAST(election_date AS DATE) AS election_date,
-                          CAST(country_id AS BIGINT) AS country_id,
-                          country_name_short,
-                          country_name,
-                          CAST(seats_total AS INTEGER) AS seats_total,
-                          party_id,
-                          party_name_short,
-                          party_name,
-                          NULLIF(TRIM(party_name_english), '') AS party_name_english,
-                          TRY_CAST(vote_share AS DOUBLE) AS vote_share,
-                          TRY_CAST(seats AS INTEGER) AS seats
-                        FROM view_election
-                        WHERE lower(trim(election_type)) = '{PARL_TYPE_PARLIAMENT}'
-                          AND election_id IS NOT NULL AND trim(election_id) <> ''
-                          AND TRY_CAST(vote_share AS DOUBLE) IS NOT NULL
-                        """
-                    )
+                    self._materialize_parliament(con, ve_path, el_path)
                 self._con = con
                 logger.info("ParlGov DuckDB ready at %s", db_path)
                 return con
@@ -111,6 +146,52 @@ class ParlGovStore:
                 self._error = str(e)
                 logger.exception("ParlGov init failed")
                 raise RuntimeError(self._error) from e
+
+    def refresh(self, *, force: bool = False) -> dict[str, object]:
+        """HEAD к parlgov.org; при более новом CSV скачивает и пересобирает DuckDB."""
+        with self._lock:
+            self._close_conn()
+            self._error = None
+            ddir = _data_dir()
+            ddir.mkdir(parents=True, exist_ok=True)
+            ve_path = ddir / "view_election.csv"
+            el_path = ddir / "election.csv"
+            db_path = ddir / "parlgov.duckdb"
+            try:
+                need_download = force
+                if not need_download:
+                    with httpx.Client(timeout=120.0, follow_redirects=True) as client:
+                        need_download = self._remote_newer_than_local(
+                            client, VIEW_ELECTION_CSV, ve_path
+                        ) or self._remote_newer_than_local(client, ELECTION_CSV, el_path)
+                if not need_download and ve_path.is_file() and el_path.is_file():
+                    con = duckdb.connect(str(db_path))
+                    has = con.execute(
+                        "SELECT COUNT(*) FROM duckdb_views() WHERE view_name = 'parliament_elections'"
+                    ).fetchone()[0]
+                    if int(has) == 0:
+                        self._materialize_parliament(con, ve_path, el_path)
+                    self._con = con
+                    return {
+                        "updated": False,
+                        "skipped": True,
+                        "message": "Локальные CSV не новее сервера (Last-Modified).",
+                    }
+                logger.info("ParlGov: downloading CSV (refresh)")
+                self._download(VIEW_ELECTION_CSV, ve_path)
+                self._download(ELECTION_CSV, el_path)
+                con = duckdb.connect(str(db_path))
+                self._materialize_parliament(con, ve_path, el_path)
+                self._con = con
+                return {
+                    "updated": True,
+                    "skipped": False,
+                    "message": "CSV загружены, DuckDB пересобран.",
+                }
+            except Exception as e:  # noqa: BLE001
+                logger.exception("ParlGov refresh failed")
+                self._error = None
+                return {"updated": False, "skipped": False, "error": str(e)}
 
     def status(self) -> dict[str, object]:
         try:
@@ -150,33 +231,56 @@ class ParlGovStore:
 
     def list_elections(
         self,
-        country_id: int,
+        country_id: int | None,
         *,
+        date_from: str | None = None,
+        date_to: str | None = None,
+        q: str | None = None,
         limit: int = 40,
         offset: int = 0,
     ) -> tuple[list[dict[str, object]], int]:
         con = self._ensure_loaded()
+        conds: list[str] = []
+        params: list[object] = []
+        if country_id is not None:
+            conds.append("country_id = ?")
+            params.append(country_id)
+        if date_from:
+            conds.append("election_date >= CAST(? AS DATE)")
+            params.append(date_from)
+        if date_to:
+            conds.append("election_date <= CAST(? AS DATE)")
+            params.append(date_to)
+        if q and q.strip():
+            like = f"%{q.strip().lower()}%"
+            conds.append(
+                "(LOWER(country_name) LIKE ? OR LOWER(country_name_short) LIKE ?)"
+            )
+            params.extend([like, like])
+        where_sql = " AND ".join(conds) if conds else "1=1"
         total = con.execute(
-            """
+            f"""
             SELECT COUNT(*) FROM (
               SELECT DISTINCT election_id FROM parliament_elections
-              WHERE country_id = ?
+              WHERE {where_sql}
             ) s
             """,
-            [country_id],
+            params,
         ).fetchone()[0]
+        params2 = list(params)
+        params2.extend([limit, offset])
         rows = con.execute(
-            """
+            f"""
             SELECT election_id, election_date::VARCHAR AS election_date,
                    country_name_short, country_name,
                    MAX(seats_total) AS seats_total
             FROM parliament_elections
-            WHERE country_id = ?
+            WHERE {where_sql}
             GROUP BY 1, 2, 3, 4
             ORDER BY election_date DESC
             LIMIT ? OFFSET ?
             """,
-            [country_id, limit, offset],
+            params2,
         ).fetchall()
         out = [
             {
@@ -265,6 +369,8 @@ class ParlGovStore:
             "country_name": head[1] if head else None,
             "seats_total": seats_total,
             "votes_valid": votes_valid,
+            "seats_pr_tier": None,
+            "seats_constituency_tier": None,
             "parties": parties,
         }
 

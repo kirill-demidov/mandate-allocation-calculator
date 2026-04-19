@@ -14,6 +14,9 @@ from pydantic import BaseModel, Field, field_validator
 from app.calc import calculate_mandates
 from app.reference_api import router as reference_router
 
+# Согласовано с фронтом: float после ренормализации (prefill) может дать 100.00000000000001.
+_PERCENT_SUM_FLOAT_EPSILON = 1e-6
+
 METHOD_KEYS = (
     "hare",
     "droop",
@@ -88,7 +91,7 @@ def health() -> dict[str, str]:
 @app.post("/api/calculate", response_model=CalculateResponse)
 def calculate(body: CalculateRequest) -> CalculateResponse:
     total_pct = float(sum(p.vote_percent for p in body.parties))
-    if total_pct > 100.0 + 1e-9:
+    if total_pct > 100.0 + _PERCENT_SUM_FLOAT_EPSILON:
         raise HTTPException(
             status_code=400,
             detail=f"Сумма процентов не может превышать 100%. Сейчас: {total_pct:.4f}",

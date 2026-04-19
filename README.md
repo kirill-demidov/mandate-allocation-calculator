@@ -165,10 +165,23 @@ Workflow (`.github/workflows/deploy.yml`) при push в **`master`** или **`
 
 ## Справочник выборов (ParlGov + DuckDB)
 
-На странице **`/reference`** загружаются CSV **ParlGov** (национальные выборы в парламент, EU и большинство OECD), в **DuckDB** строится локальная база; можно выбрать страну и выборы и **открыть партии в калькуляторе** (доли голосов перенормируются к сумме 100%). Юридический **электоральный порог** в выгрузке ParlGov не выделен — задаётся вручную на странице справочника перед переходом.
+На странице **`/reference`** загружаются CSV **ParlGov** (национальные выборы в парламент, EU и большинство OECD), в **DuckDB** строится локальная база; можно выбрать страну (или **все страны**), отфильтровать выборы **по датам и тексту**, затем **открыть партии в калькуляторе** (доли голосов перенормируются к сумме 100%). Юридический **электоральный порог** в выгрузке ParlGov не выделен — задаётся вручную на странице справочника перед переходом.
 
 - Первый запуск backend после деплоя может **скачать два больших CSV** (однократно в каталог `PARLGOV_DATA_DIR`, по умолчанию в образе `/app/data/parlgov`).  
 - Атрибуция: Döring, Quaas, Hesse, Manow — *Parliaments and governments database (ParlGov)*, [parlgov.org](https://www.parlgov.org/).
+
+### CLEA (окружной уровень → агрегат в DuckDB)
+
+Опционально: положите **один UTF-8 CSV** с окружными строками (как в [CLEA](https://electiondataarchive.org/)) и задайте **`CLEA_CSV_PATH`** или **`CLEA_DATA_DIR`** (см. `.env.example`). Backend в **DuckDB** посчитает по стране/году/месяцу/дню:
+
+- сумму **действительных голосов** по стране (через `vv1` по округу без двойного счёта);
+- **доли и оценку голосов** по партиям (`pv1`);
+- **сумму мест по округам** по партии, если в файле есть колонка мест (`seat` и алиасы);
+- **порог**, если есть колонка вроде `tm` / `threshold` (значение 0–1 трактуется как доля и переводится в %).
+
+Итоговые таблицы сохраняются в файл **`clea_aggregated.duckdb`** (путь можно задать **`CLEA_DUCKDB_PATH`**). На `/reference` появляется блок CLEA, фильтры по дате/тексту те же, что для ParlGov; можно **скачать** готовый `.duckdb`.
+
+Ожидаемые имена колонок (регистр не важен; есть **алиасы**): `ctr`, `yr`, обязательно **`cst`** (округ), **`pv1`**, **`vv1`**, опционально `mn`, `dy`, `pty_n` или `pty`, `seat`, `tm`, `ctr_n`.
 
 ## Деплой на DigitalOcean + GitHub Actions (кратко)
 
@@ -179,11 +192,17 @@ Workflow (`.github/workflows/deploy.yml`) при push в **`master`** или **`
 - `GET /api/health` — проверка живости  
 - `POST /api/calculate` — JSON с партиями и настройками  
 - `POST /api/export.xlsx?lang=ru|en` — выгрузка таблицы в Excel  
-- `GET /api/reference/status` — состояние справочника ParlGov  
+- `GET /api/reference/status` — JSON `{ parlgov: {...}, clea: {...} }`  
+- `POST /api/reference/refresh?force=false` — проверить обновления ParlGov (HEAD) и CLEA (mtime CSV); при `force=true` перекаать без сравнения дат  
 - `GET /api/reference/countries` — список стран  
-- `GET /api/reference/elections?country_id=&limit=&offset=` — выборы страны  
+- `GET /api/reference/elections?country_id=&date_from=&date_to=&q=&limit=&offset=` — выборы (страна опциональна)  
 - `GET /api/reference/election/{id}` — партии и метаданные  
 - `GET /api/reference/election/{id}/prefill?threshold_percent=` — JSON для предзаполнения калькулятора  
+- `GET /api/reference/clea/status` — наличие CSV и путь к агрегированному DuckDB  
+- `GET /api/reference/clea/elections?date_from=&date_to=&q=&limit=&offset=` — список выборов из CLEA  
+- `GET /api/reference/clea/detail?election_key=` — состав по партиям (как у ParlGov)  
+- `GET /api/reference/clea/prefill?election_key=&threshold_percent=` — предзаполнение (порог из файла, если не передан)  
+- `GET /api/reference/clea/duckdb` — скачать файл `clea_aggregated.duckdb`  
 
 Схемы см. в `backend/app/main.py` и `backend/app/reference_api.py`.
 
