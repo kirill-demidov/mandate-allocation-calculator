@@ -74,7 +74,7 @@ def _clea_csv_path() -> Path | None:
 
 
 def _load_thresholds() -> dict[str, float]:
-    p = Path(__file__).parent.parent / "data" / "thresholds.json"
+    p = Path(__file__).parent / "thresholds.json"
     if not p.is_file():
         return {}
     try:
