@@ -202,6 +202,35 @@ main.shell-main {
   color: var(--ink);
 }
 
+.ref-row-selected td {
+  background: var(--bg-alt, #f5f2ec);
+}
+
+.ref-inline-detail-row td {
+  padding: 0;
+}
+
+.ref-inline-detail-cell {
+  border-top: none !important;
+  padding: 0 !important;
+}
+
+.ref-inline-detail {
+  padding: 1rem 1.25rem 1rem;
+  background: var(--bg-alt, #f5f2ec);
+  border-bottom: 1px solid var(--line);
+}
+
+.ref-inline-detail .table-ref-detail {
+  margin-top: 0.5rem;
+}
+
+button.btn.btn-active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
 .ref-detail-split-title {
   margin: 1.15rem 0 0.35rem;
   font-size: 1rem;

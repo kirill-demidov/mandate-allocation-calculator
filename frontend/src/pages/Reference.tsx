@@ -21,6 +21,117 @@ import {
 
 const PAGE = 40;
 
+type DetailSplit = {
+  rows: { party: { name: string; vote_share: number | null; seats_recorded: number | null; votes_estimated: number | null }; renorm: number | null }[];
+  sumOfficial: number;
+  sumSeats: number;
+  seatsCounted: number;
+  sumVotesEst: number;
+  votesCounted: number;
+} | null;
+
+function InlineDetail({
+  detail,
+  detailSplit,
+  seatsColLabel,
+  threshold,
+  setThreshold,
+  prefillBusy,
+  onOpenCalculator,
+  t,
+}: {
+  detail: ReferenceElectionDetail;
+  detailSplit: DetailSplit;
+  seatsColLabel: string;
+  threshold: number;
+  setThreshold: (v: number) => void;
+  prefillBusy: boolean;
+  onOpenCalculator: () => void;
+  t: (k: string, opts?: Record<string, unknown>) => string;
+}) {
+  return (
+    <div className="ref-inline-detail">
+      <p className="muted" style={{ marginBottom: "0.4rem" }}>
+        {detail.source === "clea"
+          ? `${detail.country_name ?? "—"} · ${detail.election_date ?? "—"}`
+          : `${detail.country_code ?? "—"} · ${detail.election_date ?? "—"}`}
+        {detail.seats_total != null ? ` · ${t("ref.seatsTotal", { n: detail.seats_total })}` : ""}
+        {detail.votes_valid != null ? ` · ${t("ref.votesValid", { n: detail.votes_valid })}` : ""}
+      </p>
+      <p className="muted" style={{ marginBottom: "0.4rem" }}>
+        {detail.source === "clea" && detail.seats_pr_tier != null && detail.seats_constituency_tier != null
+          ? t("ref.seatsTierCleaSplit", { pr: detail.seats_pr_tier, co: detail.seats_constituency_tier, tot: detail.seats_total ?? "—" })
+          : detail.source === "clea"
+            ? t("ref.seatsTierCleaNoMag")
+            : t("ref.seatsTierParlgov")}
+      </p>
+      <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.75rem", flexWrap: "wrap" }}>
+        <label className="field" style={{ maxWidth: "10rem", margin: 0 }}>
+          <span>{t("ref.thresholdLabel")}</span>
+          <input
+            type="number"
+            min={0}
+            max={100}
+            step={0.1}
+            value={threshold}
+            onChange={(e) => setThreshold(Number(e.target.value))}
+          />
+        </label>
+        <div style={{ display: "flex", gap: "0.5rem", marginTop: "1.2rem" }}>
+          <button type="button" className="btn btn-primary" disabled={prefillBusy} onClick={onOpenCalculator}>
+            {t("ref.openCalc")}
+          </button>
+          <Link className="btn btn-secondary" to="/app">{t("ref.toCalcBlank")}</Link>
+        </div>
+      </div>
+      {detailSplit ? (
+        <div className="table-wrap">
+          <table className="data table-ref-detail">
+            <colgroup>
+              <col style={{ width: "36%" }} />
+              <col style={{ width: "16%" }} />
+              <col style={{ width: "16%" }} />
+              <col style={{ width: "16%" }} />
+              <col style={{ width: "16%" }} />
+            </colgroup>
+            <thead>
+              <tr>
+                <th scope="col">{t("ref.colParty")}</th>
+                <th scope="col" className="num">{t("ref.colShareOfficial")}</th>
+                <th scope="col" className="num">{t("ref.colShareRenorm")}</th>
+                <th scope="col" className="num">{seatsColLabel}</th>
+                <th scope="col" className="num">{t("ref.colVotesEst")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {detailSplit.rows.map(({ party: p, renorm }) => (
+                <tr key={p.name}>
+                  <td className="party-cell">{p.name}</td>
+                  <td className="num">{p.vote_share != null ? `${p.vote_share.toFixed(2)}%` : "—"}</td>
+                  <td className="num">{renorm != null ? `${renorm.toFixed(2)}%` : "—"}</td>
+                  <td className="num">{p.seats_recorded ?? "—"}</td>
+                  <td className="num">{p.votes_estimated ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+            {detailSplit.sumOfficial > 0 ? (
+              <tfoot>
+                <tr className="ref-detail-tfoot">
+                  <th scope="row">{t("ref.rowTotal")}</th>
+                  <td className="num">{detailSplit.sumOfficial.toFixed(2)}%</td>
+                  <td className="num">100.00%</td>
+                  <td className="num">{detailSplit.seatsCounted > 0 ? detailSplit.sumSeats : "—"}</td>
+                  <td className="num">{detailSplit.votesCounted > 0 ? detailSplit.sumVotesEst : "—"}</td>
+                </tr>
+              </tfoot>
+            ) : null}
+          </table>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function parlgovLoaded(s: Record<string, unknown> | null): boolean {
   const pg = s?.parlgov as Record<string, unknown> | undefined;
   return Boolean(pg?.loaded);
@@ -44,6 +155,7 @@ export function Reference() {
   const [unifiedElections, setUnifiedElections] = useState<UnifiedElectionRow[]>([]);
   const [unifiedTotal, setUnifiedTotal] = useState(0);
   const [detail, setDetail] = useState<ReferenceElectionDetail | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [threshold, setThreshold] = useState(0);
   const [loading, setLoading] = useState(true);
   const [listBusy, setListBusy] = useState(false);
@@ -167,7 +279,13 @@ export function Reference() {
     void loadUnifiedElections(0, false);
   }, [status, countryId, dateFrom, dateTo, searchQ, sourceFilter, loadUnifiedElections]);
 
-  async function onPickElection(id: number) {
+  async function onPickElection(id: number, key: string) {
+    if (selectedKey === key) {
+      setSelectedKey(null);
+      setDetail(null);
+      return;
+    }
+    setSelectedKey(key);
     setDetailBusy(true);
     setError(null);
     try {
@@ -184,7 +302,7 @@ export function Reference() {
 
   async function onPickUnified(row: UnifiedElectionRow) {
     if (row.source === "parlgov" && row.parlgov_election_id != null) {
-      await onPickElection(row.parlgov_election_id);
+      await onPickElection(row.parlgov_election_id, row.election_key);
       return;
     }
     if (row.source === "clea") {
@@ -193,6 +311,12 @@ export function Reference() {
   }
 
   async function onPickCleaElection(key: string) {
+    if (selectedKey === key) {
+      setSelectedKey(null);
+      setDetail(null);
+      return;
+    }
+    setSelectedKey(key);
     setDetailBusy(true);
     setError(null);
     try {
@@ -419,32 +543,60 @@ export function Reference() {
                   </tr>
                 </thead>
                 <tbody>
-                  {unifiedElections.map((row) => (
-                    <tr key={row.election_key}>
-                      <td className="muted">
-                        {row.source === "parlgov" && row.parlgov_election_id != null
-                          ? row.parlgov_election_id
-                          : row.election_key}
-                      </td>
-                      <td>{row.election_date}</td>
-                      <td>{row.election_label ?? "—"}</td>
-                      <td className="num">{row.seats_total ?? "—"}</td>
-                      <td className="num">
-                        {row.threshold_percent != null
-                          ? `${row.threshold_percent}%`
-                          : "—"}
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="btn btn-sm"
-                          onClick={() => void onPickUnified(row)}
+                  {unifiedElections.map((row) => {
+                    const isSelected = selectedKey === row.election_key;
+                    return (
+                      <>
+                        <tr
+                          key={row.election_key}
+                          className={isSelected ? "ref-row-selected" : undefined}
                         >
-                          {t("ref.choose")}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                          <td className="muted">
+                            {row.source === "parlgov" && row.parlgov_election_id != null
+                              ? row.parlgov_election_id
+                              : row.election_key}
+                          </td>
+                          <td>{row.election_date}</td>
+                          <td>{row.election_label ?? "—"}</td>
+                          <td className="num">{row.seats_total ?? "—"}</td>
+                          <td className="num">
+                            {row.threshold_percent != null
+                              ? `${row.threshold_percent}%`
+                              : "—"}
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className={`btn btn-sm${isSelected ? " btn-active" : ""}`}
+                              onClick={() => void onPickUnified(row)}
+                            >
+                              {isSelected ? "▲" : t("ref.choose")}
+                            </button>
+                          </td>
+                        </tr>
+                        {isSelected ? (
+                          <tr key={`${row.election_key}__detail`} className="ref-inline-detail-row">
+                            <td colSpan={6} className="ref-inline-detail-cell">
+                              {detailBusy ? (
+                                <p className="muted">{t("ref.loadingDetail")}</p>
+                              ) : detail ? (
+                                <InlineDetail
+                                  detail={detail}
+                                  detailSplit={detailSplit}
+                                  seatsColLabel={seatsColLabel}
+                                  threshold={threshold}
+                                  setThreshold={setThreshold}
+                                  prefillBusy={prefillBusy}
+                                  onOpenCalculator={() => void onOpenCalculator()}
+                                  t={t}
+                                />
+                              ) : null}
+                            </td>
+                          </tr>
+                        ) : null}
+                      </>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -463,130 +615,6 @@ export function Reference() {
             ) : null}
           </section>
 
-          {detailBusy ? <p className="muted">{t("ref.loadingDetail")}</p> : null}
-
-          {detail ? (
-            <section className="panel">
-              <h2 className="panel-title">{t("ref.detailTitle")}</h2>
-              <p className="muted">
-                {detail.source === "clea"
-                  ? `${detail.country_name ?? "—"} · ${detail.election_date ?? "—"}`
-                  : `${detail.country_code ?? "—"} · ${detail.election_date ?? "—"}`}{" "}
-                · {t("ref.seatsTotal", { n: detail.seats_total ?? "—" })}
-                {detail.votes_valid != null
-                  ? ` · ${t("ref.votesValid", { n: detail.votes_valid })}`
-                  : null}
-                {detail.source === "clea" ? ` · ${t("ref.sourceClea")}` : null}
-              </p>
-              <p className="muted">
-                {detail.source === "clea" &&
-                detail.seats_pr_tier != null &&
-                detail.seats_constituency_tier != null
-                  ? t("ref.seatsTierCleaSplit", {
-                      pr: detail.seats_pr_tier,
-                      co: detail.seats_constituency_tier,
-                      tot: detail.seats_total ?? "—",
-                    })
-                  : detail.source === "clea"
-                    ? t("ref.seatsTierCleaNoMag")
-                    : t("ref.seatsTierParlgov")}
-              </p>
-              <p className="muted">
-                {detail.source === "clea" && detail.threshold_from_data != null
-                  ? t("ref.thresholdHintClea", {
-                      n: detail.threshold_from_data,
-                    })
-                  : t("ref.thresholdHint")}
-              </p>
-              <label className="field" style={{ maxWidth: "12rem" }}>
-                <span>{t("ref.thresholdLabel")}</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={0.1}
-                  value={threshold}
-                  onChange={(e) => setThreshold(Number(e.target.value))}
-                />
-              </label>
-
-              <h3 className="ref-detail-split-title">{t("ref.detailSplitTitle")}</h3>
-              <p className="muted ref-detail-split-lead">{t("ref.detailSplitLead")}</p>
-
-              <div className="table-wrap">
-                <table className="data table-ref-detail">
-                  <colgroup>
-                    <col style={{ width: "36%" }} />
-                    <col style={{ width: "16%" }} />
-                    <col style={{ width: "16%" }} />
-                    <col style={{ width: "16%" }} />
-                    <col style={{ width: "16%" }} />
-                  </colgroup>
-                  <thead>
-                    <tr>
-                      <th scope="col">{t("ref.colParty")}</th>
-                      <th scope="col" className="num">
-                        {t("ref.colShareOfficial")}
-                      </th>
-                      <th scope="col" className="num">
-                        {t("ref.colShareRenorm")}
-                      </th>
-                      <th scope="col" className="num">
-                        {seatsColLabel}
-                      </th>
-                      <th scope="col" className="num">
-                        {t("ref.colVotesEst")}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(detailSplit?.rows ?? []).map(({ party: p, renorm }) => (
-                      <tr key={p.name}>
-                        <td className="party-cell">{p.name}</td>
-                        <td className="num">
-                          {p.vote_share != null ? `${p.vote_share.toFixed(2)}%` : "—"}
-                        </td>
-                        <td className="num">
-                          {renorm != null ? `${renorm.toFixed(2)}%` : "—"}
-                        </td>
-                        <td className="num">{p.seats_recorded ?? "—"}</td>
-                        <td className="num">{p.votes_estimated ?? "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  {detailSplit && detailSplit.sumOfficial > 0 ? (
-                    <tfoot>
-                      <tr className="ref-detail-tfoot">
-                        <th scope="row">{t("ref.rowTotal")}</th>
-                        <td className="num">{detailSplit.sumOfficial.toFixed(2)}%</td>
-                        <td className="num">100.00%</td>
-                        <td className="num">
-                          {detailSplit.seatsCounted > 0 ? detailSplit.sumSeats : "—"}
-                        </td>
-                        <td className="num">
-                          {detailSplit.votesCounted > 0 ? detailSplit.sumVotesEst : "—"}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  ) : null}
-                </table>
-              </div>
-
-              <p className="row-actions">
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  disabled={prefillBusy}
-                  onClick={() => void onOpenCalculator()}
-                >
-                  {t("ref.openCalc")}
-                </button>
-                <Link className="btn btn-secondary" to="/app">
-                  {t("ref.toCalcBlank")}
-                </Link>
-              </p>
-            </section>
-          ) : null}
         </>
       ) : null}
 

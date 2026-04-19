@@ -102,6 +102,18 @@ class ParlGovStore:
         ).fetchone()
         if r is None or int(r[0]) == 0:
             rebuild_ref_party_election(con)
+            return
+        has_seats_total = int(
+            con.execute(
+                """
+                SELECT COUNT(*) FROM information_schema.columns
+                WHERE table_schema = 'main' AND table_name = 'ref_party_election'
+                  AND column_name = 'seats_total'
+                """
+            ).fetchone()[0]
+        ) > 0
+        if not has_seats_total:
+            rebuild_ref_party_election(con)
 
     def _remote_newer_than_local(
         self, client: httpx.Client, url: str, local: Path
@@ -398,7 +410,8 @@ class ParlGovStore:
               MAX(r.election_label) AS election_label,
               MAX(r.source) AS source,
               MAX(r.threshold_pct) AS threshold_pct,
-              COUNT(*)::BIGINT AS n_parties
+              COUNT(*)::BIGINT AS n_parties,
+              MAX(r.seats_total) AS seats_total_ref
             FROM ref_party_election r
             WHERE {where_sql}
             GROUP BY r.election_key
@@ -417,7 +430,7 @@ class ParlGovStore:
               b.threshold_pct,
               b.n_parties,
               ce.votes_valid,
-              ce.seats_total,
+              COALESCE(ce.seats_total, b.seats_total_ref) AS seats_total,
               ce.seats_pr_tier,
               ce.seats_constituency_tier
             FROM ({base_sql}) b
@@ -436,7 +449,7 @@ class ParlGovStore:
               b.threshold_pct,
               b.n_parties,
               CAST(NULL AS BIGINT) AS votes_valid,
-              CAST(NULL AS INTEGER) AS seats_total,
+              b.seats_total_ref AS seats_total,
               CAST(NULL AS INTEGER) AS seats_pr_tier,
               CAST(NULL AS INTEGER) AS seats_constituency_tier
             FROM ({base_sql}) b
