@@ -63,6 +63,77 @@ function MethodReadMore({ methodKey }: { methodKey: string }) {
   );
 }
 
+const METHOD_KEYS = ["hare", "droop", "sainte_lague", "dhondt", "imperiali"] as const;
+const METHOD_LABELS: Record<string, string> = {
+  hare: "Hare",
+  droop: "Droop",
+  sainte_lague: "Sainte-Laguë",
+  dhondt: "D'Hondt",
+  imperiali: "Imperiali",
+};
+
+function ActualDiffNote({
+  result,
+  seatsMap,
+  t,
+}: {
+  result: MandateRow[];
+  seatsMap: Map<string, number>;
+  t: (k: string, opts?: Record<string, unknown>) => string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const diffs = METHOD_KEYS.map((k) => ({
+    key: k,
+    diff: result.reduce((sum, r) => {
+      const actual = seatsMap.get(r.party);
+      if (actual == null) return sum;
+      return sum + Math.abs(actual - Number(r[k] as number));
+    }, 0),
+  }));
+  const best = diffs.reduce((a, b) => (a.diff <= b.diff ? a : b));
+
+  return (
+    <div className="actual-diff-note" style={{ marginTop: "0.75rem", marginBottom: "0.5rem" }}>
+      <button
+        type="button"
+        className="actual-diff-toggle"
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          background: "none", border: "none", cursor: "pointer",
+          padding: 0, fontSize: "0.85em", color: "var(--muted, #666)",
+          display: "flex", alignItems: "center", gap: "0.3em",
+        }}
+      >
+        <span>{open ? "▾" : "▸"}</span>
+        <span>{t("actualDiff.title")}</span>
+      </button>
+      {open && (
+        <div style={{
+          marginTop: "0.5rem", padding: "0.75rem 1rem",
+          background: "var(--panel-bg, #f7f5f1)", borderRadius: "6px",
+          fontSize: "0.85em", lineHeight: 1.55,
+        }}>
+          <p style={{ margin: "0 0 0.4rem" }}>
+            {best.diff === 0
+              ? t("actualDiff.closest", { method: METHOD_LABELS[best.key], n: 0 })
+              : t("actualDiff.closest", { method: METHOD_LABELS[best.key], n: best.diff })}
+          </p>
+          <p style={{ margin: "0 0 0.5rem", color: "var(--muted, #666)" }}>
+            {t("actualDiff.noMatch")}
+          </p>
+          <p style={{ margin: "0 0 0.3rem", fontWeight: 600 }}>{t("actualDiff.reasonsTitle")}</p>
+          <ul style={{ margin: 0, paddingLeft: "1.2em" }}>
+            {(["r1", "r2", "r3", "r4", "r5", "r6", "r7"] as const).map((k) => (
+              <li key={k} style={{ marginBottom: "0.2rem" }}>{t(`actualDiff.${k}`)}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function BarChart({
   rows,
   valueKey,
@@ -481,6 +552,17 @@ export function Calculator() {
               );
             })()}
           </div>
+
+          {(() => {
+            const seatsMap = new Map(
+              parties
+                .filter((p) => p.seatsRecorded != null)
+                .map((p) => [p.name.trim(), p.seatsRecorded as number]),
+            );
+            return seatsMap.size > 0 ? (
+              <ActualDiffNote result={result} seatsMap={seatsMap} t={t} />
+            ) : null;
+          })()}
 
           <BarChart rows={result} valueKey="vote_percent" label={t("calc.chartVotes")} />
 

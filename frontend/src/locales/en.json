@@ -257,5 +257,18 @@
     "dhondt": "D'Hondt",
     "imp": "Imperiali",
     "total": "Total"
+  },
+  "actualDiff": {
+    "title": "Why do the actual and theoretical figures differ?",
+    "closest": "Closest method: {{method}} (total deviation {{n}} seats)",
+    "noMatch": "None of the five methods exactly reproduces the actual result — this is normal.",
+    "reasonsTitle": "Common reasons for a mismatch:",
+    "r1": "District-level allocation — the formula was applied separately in each constituency, not nationally. Small districts amplify the advantage of larger parties.",
+    "r2": "Mixed system — part of the seats were filled by a majoritarian (FPTP) rule; only the PR share is comparable.",
+    "r3": "Bonus seats — some electoral laws award extra seats to the leading party or coalition to guarantee a majority.",
+    "r4": "Effective threshold — parties that did not clear the barrier in ParlGov data are already excluded; the real cutoff may differ from what you set.",
+    "r5": "Independent candidates — seats won by non-party candidates appear in the total but are absent from party-list calculations.",
+    "r6": "Formula variant — the country may use a slightly different tie-breaking rule or a quota variant (e.g. Hagenbach-Bischoff).",
+    "r7": "Data accuracy — ParlGov / CLEA figures may be preliminary or rounded."
   }
 }

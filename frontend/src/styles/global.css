@@ -219,6 +219,9 @@ main.shell-main {
   padding: 1rem 1.25rem 1rem;
   background: var(--bg-alt, #f5f2ec);
   border-bottom: 1px solid var(--line);
+  overflow-wrap: break-word;
+  word-break: break-word;
+  min-width: 0;
 }
 
 .ref-inline-detail .table-ref-detail {
