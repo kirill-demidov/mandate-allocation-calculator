@@ -214,14 +214,6 @@ function InlineDetail({
                   )}
                 </p>
               )}
-              <button
-                type="button"
-                className="btn btn-sm"
-                style={{ marginTop: "0.75rem" }}
-                onClick={() => setShowModal(true)}
-              >
-                {t("ref.generateSummary")}
-              </button>
             </>
           ) : (
             <button
