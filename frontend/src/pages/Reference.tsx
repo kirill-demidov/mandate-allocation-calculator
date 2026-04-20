@@ -199,10 +199,10 @@ function InlineDetail({
           ) : null}
         </>
       ) : (
-        <div className="ref-system-tab" style={{ maxWidth: "42rem" }}>
+        <div className="ref-system-tab" style={{ width: "100%" }}>
           {currentSummary ? (
             <>
-              <p style={{ marginBottom: "0.5rem" }}>{summaryText}</p>
+              <p style={{ marginBottom: "0.5rem", whiteSpace: "normal", overflowWrap: "break-word" }}>{summaryText}</p>
               {currentSummary.law_name && (
                 <p className="muted" style={{ fontSize: "0.85em" }}>
                   {currentSummary.law_url ? (
