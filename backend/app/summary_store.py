@@ -41,14 +41,26 @@ def _summaries_path() -> Path:
     return base / "country_summaries.json"
 
 
-def load_summaries() -> dict[str, object]:
-    p = _summaries_path()
+def _bundled_summaries() -> dict[str, object]:
+    p = Path(__file__).parent / "bundled_summaries.json"
     if not p.is_file():
         return {}
     try:
         return json.loads(p.read_text(encoding="utf-8"))
     except Exception:
         return {}
+
+
+def load_summaries() -> dict[str, object]:
+    bundled = _bundled_summaries()
+    p = _summaries_path()
+    if not p.is_file():
+        return bundled
+    try:
+        user = json.loads(p.read_text(encoding="utf-8"))
+        return {**bundled, **user}  # user-generated overrides bundled
+    except Exception:
+        return bundled
 
 
 def _save_summaries(data: dict[str, object]) -> None:

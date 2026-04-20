@@ -1,0 +1,324 @@
+{
+  "ALB": {
+    "summary_en": "Albania uses a closed-list proportional representation system with seats allocated by the D'Hondt method across multi-member constituencies. A 3% national electoral threshold applies to parties. The system was reformed in 2008 to move from a mixed to a fully proportional design.",
+    "summary_ru": "Албания использует закрытые партийные списки с пропорциональным представительством; места распределяются методом д'Ондта в многомандатных округах. Действует 3%-й национальный избирательный порог для партий. В 2008 году система была реформирована с параллельной на полностью пропорциональную.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "ARM": {
+    "summary_en": "Armenia uses a closed-list proportional representation system with seats allocated nationally by the D'Hondt method. A 5% threshold applies to parties; coalitions face higher thresholds. The constitution guarantees a minimum majority bonus to prevent hung parliaments.",
+    "summary_ru": "Армения использует закрытые партийные списки с пропорциональным распределением мест методом д'Ондта по единому национальному округу. Порог для партий составляет 5%. Конституция предусматривает бонусный механизм для обеспечения парламентского большинства.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "AUT": {
+    "summary_en": "Austria uses a three-tier proportional representation system with seats allocated by the D'Hondt method at regional and national levels. A 4% national threshold (or one direct constituency mandate) is required for parliamentary entry. Voters may cast preferential votes to influence candidate ranking within lists.",
+    "summary_ru": "Австрия использует трёхуровневую пропорциональную систему с распределением мест методом д'Ондта на региональном и национальном уровнях. Для прохождения в парламент необходимо набрать 4% голосов на национальном уровне или получить прямой мандат в округе. Избиратели могут влиять на порядок кандидатов внутри списков.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "BEL": {
+    "summary_en": "Belgium uses closed-list proportional representation with seats allocated by the D'Hondt method within electoral districts. A 5% threshold applies at the district level. Voting is compulsory, and voters may cast preferential votes to alter the order of candidates on party lists.",
+    "summary_ru": "Бельгия использует закрытые партийные списки с пропорциональным распределением мест методом д'Ондта в рамках избирательных округов. Действует 5%-й порог на уровне округа. Участие в голосовании обязательно; избиратели могут отдавать предпочтительные голоса кандидатам внутри списков.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "BGR": {
+    "summary_en": "Bulgaria uses a proportional representation system with open party lists and seats distributed by the Hare quota (largest remainder) across multi-member constituencies. A 4% national threshold must be crossed for parliamentary representation. Voters may cast a preferential vote for one candidate within their chosen list.",
+    "summary_ru": "Болгария использует пропорциональную систему с открытыми партийными списками; места распределяются по квоте Хэра (наибольший остаток) в многомандатных округах. Национальный избирательный порог — 4%. Избиратели вправе отдать предпочтительный голос одному кандидату из выбранного списка.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "BIH": {
+    "summary_en": "Bosnia and Herzegovina uses a proportional representation system with seats allocated by the Sainte-Laguë method across multi-member constituencies for the House of Representatives. A 3% threshold applies. The electoral system is structured around the three constituent peoples (Bosniaks, Croats, Serbs) and the two entities.",
+    "summary_ru": "Босния и Герцеговина использует пропорциональную систему с распределением мест методом Сент-Лагё в многомандатных округах для Палаты представителей. Действует 3%-й порог. Избирательная система построена вокруг трёх государствообразующих народов и двух энтитетов.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "CHE": {
+    "summary_en": "Switzerland uses a proportional representation system with seats allocated by the Hagenbach-Bischoff quota within cantonal constituencies. There is no formal national electoral threshold; the effective threshold varies by canton size. Voters have significant flexibility through panachage (splitting votes across lists) and cumulation (doubling a candidate's votes).",
+    "summary_ru": "Швейцария использует пропорциональную систему с распределением мест по квоте Хагенбаха–Бишофа в кантональных округах. Формального национального порога нет; эффективный порог определяется размером кантона. Избиратели могут распределять голоса по разным спискам (панашаж) и удваивать голос за одного кандидата (кумуляция).",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "CYP": {
+    "summary_en": "Cyprus uses a proportional representation system with seats allocated by the Hare quota (largest remainder) across six multi-member constituencies. A 1.8% national threshold applies. The electoral system provides guaranteed seats for certain minority communities.",
+    "summary_ru": "Кипр использует пропорциональную систему с распределением мест по квоте Хэра (наибольший остаток) в шести многомандатных округах. Национальный избирательный порог — 1,8%. Система предусматривает гарантированные места для отдельных национальных меньшинств.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "CZE": {
+    "summary_en": "The Czech Republic uses a proportional representation system with seats allocated by the D'Hondt method across 14 regional constituencies. A 5% national threshold applies to parties; coalitions face progressively higher thresholds. Voters may cast up to four preferential votes to promote candidates within party lists.",
+    "summary_ru": "Чехия использует пропорциональную систему с распределением мест методом д'Ондта в 14 региональных округах. Национальный порог для партий — 5%; для коалиций он повышается. Избиратели могут отдать до четырёх предпочтительных голосов кандидатам внутри партийных списков.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "DEU": {
+    "summary_en": "Germany uses a mixed-member proportional (MMP) system combining 299 single-member constituency seats (first-past-the-post) with proportional seats allocated by the Sainte-Laguë method. A party must clear the 5% national threshold or win at least three direct constituencies to qualify for proportional seats. The 2023 reform capped the Bundestag at 630 seats by eliminating overhang mandates.",
+    "summary_ru": "Германия использует смешанную связанную пропорциональную систему (MMP): 299 одномандатных округов (относительное большинство) и пропорциональные места, распределяемые методом Сент-Лагё. Порог — 5% национальных голосов или 3 прямых мандата. Реформа 2023 года ограничила Бундестаг 630 местами, упразднив переходящие мандаты.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "DNK": {
+    "summary_en": "Denmark uses a proportional representation system with seats distributed by the modified Sainte-Laguë method across ten constituencies, supplemented by levelling seats allocated nationally. A 2% national threshold is required for parliament entry. The system strongly reflects national vote shares through levelling seats.",
+    "summary_ru": "Дания использует пропорциональную систему с распределением мест модифицированным методом Сент-Лагё в десяти округах, дополненную выравнивающими мандатами на национальном уровне. Национальный порог — 2%. Выравнивающие места обеспечивают точное отражение общенациональных результатов в составе парламента.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "ESP": {
+    "summary_en": "Spain uses a proportional representation system with seats allocated by the D'Hondt method within 52 provincial constituencies. A 3% threshold applies at the constituency level. The relatively small size of most constituencies creates a significant mechanical advantage for larger parties.",
+    "summary_ru": "Испания использует пропорциональную систему с распределением мест методом д'Ондта в 52 провинциальных округах. Действует 3%-й порог на уровне округа. Небольшой размер большинства округов даёт механическое преимущество крупным партиям.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "EST": {
+    "summary_en": "Estonia uses a proportional representation system with seats allocated by the D'Hondt method across twelve multi-member constituencies. A 5% national threshold must be cleared for parliamentary representation. Voters cast a preference vote for a candidate within a party list.",
+    "summary_ru": "Эстония использует пропорциональную систему с распределением мест методом д'Ондта в двенадцати многомандатных округах. Национальный избирательный порог — 5%. Избиратели отдают предпочтительный голос за конкретного кандидата из партийного списка.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "FIN": {
+    "summary_en": "Finland uses a proportional representation system with seats allocated by the D'Hondt method across 13 multi-member constituencies. There is no formal national electoral threshold; candidates with the most votes within their party list in each constituency win seats. Voters vote directly for individual candidates, and the party's seat share is determined by the total votes for all its candidates.",
+    "summary_ru": "Финляндия использует пропорциональную систему с распределением мест методом д'Ондта в 13 многомандатных округах. Формального национального порога нет: победу одерживают кандидаты с наибольшим числом голосов внутри партийного списка. Избиратели голосуют за конкретных кандидатов; доля мест партии определяется суммой голосов всех её кандидатов.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "GEO": {
+    "summary_en": "Georgia uses a fully proportional representation system (since 2024) with seats allocated by the D'Hondt method in a single national constituency. A 5% electoral threshold applies to parties. The shift to full PR was a constitutional compromise following mass protests in 2019–2020.",
+    "summary_ru": "Грузия с 2024 года использует полностью пропорциональную систему с распределением мест методом д'Ондта по единому национальному округу. Избирательный порог для партий — 5%. Переход на ПР стал конституционным компромиссом после массовых протестов 2019–2020 годов.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "GRC": {
+    "summary_en": "Greece uses a proportional representation system with a bonus of up to 50 seats awarded to the leading party, seats otherwise distributed by simple quota across constituencies. A 3% national threshold applies to parties. The bonus-seat mechanism (reinforced proportionality) was suspended for the 2023 election and restored in modified form thereafter.",
+    "summary_ru": "Греция использует пропорциональную систему с бонусом до 50 мест для партии, набравшей наибольшее число голосов; остальные места распределяются по простой квоте в округах. Национальный порог — 3%. Механизм бонусных мест был отменён на выборах 2023 года и восстановлен в изменённом виде.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "HRV": {
+    "summary_en": "Croatia uses a proportional representation system with seats allocated by the D'Hondt method across ten geographic constituencies of equal size (14 seats each). A 5% threshold applies within each constituency. Additional seats are reserved for the diaspora and national minorities.",
+    "summary_ru": "Хорватия использует пропорциональную систему с распределением мест методом д'Ондта в десяти географических округах равного размера (по 14 мест). Порог в каждом округе — 5%. Отдельные места зарезервированы для диаспоры и национальных меньшинств.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "HUN": {
+    "summary_en": "Hungary uses a mixed electoral system combining 106 single-member constituencies (first-past-the-post) with 93 national list seats allocated by the D'Hondt method. A 5% national threshold applies to the party list vote. Votes cast in SMC races that do not contribute to a win are transferred as 'fractional compensation votes' to the national list.",
+    "summary_ru": "Венгрия использует смешанную систему: 106 одномандатных округов (относительное большинство) и 93 общенациональных мест по партийным спискам, распределяемых методом д'Ондта. Национальный порог — 5%. Голоса, не вошедшие в победный результат в одномандатных округах, передаются в виде компенсационных дробных голосов на общенациональный уровень.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "IRL": {
+    "summary_en": "Ireland uses the Single Transferable Vote (STV) system in multi-member constituencies of 3–5 seats. There is no formal electoral threshold; candidates require a Droop quota of votes to be elected. Voters rank candidates in order of preference, and surplus votes and eliminated candidates' votes are redistributed until all seats are filled.",
+    "summary_ru": "Ирландия использует систему единственного передаваемого голоса (STV) в многомандатных округах по 3–5 мест. Формального избирательного порога нет; для победы кандидат должен набрать квоту Друпа. Избиратели ранжируют кандидатов по предпочтению, а излишки и голоса выбывших перераспределяются до заполнения всех мест.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "ISL": {
+    "summary_en": "Iceland uses a proportional representation system with seats allocated by the D'Hondt method across six constituencies, supplemented by national levelling seats. A 5% national threshold is required for levelling seats. Voters may cast preferential votes to influence candidate order within lists.",
+    "summary_ru": "Исландия использует пропорциональную систему с распределением мест методом д'Ондта в шести округах, дополненную общенациональными выравнивающими мандатами. Для получения выравнивающих мест необходим 5%-й национальный порог. Избиратели могут отдавать предпочтительные голоса, влияя на очерёдность кандидатов в списках.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "ISR": {
+    "summary_en": "Israel uses a purely proportional representation system with the entire country constituting a single national constituency of 120 seats. Seats are allocated by the D'Hondt method. A 3.25% national threshold applies; parties below it receive no seats, making this one of the world's most proportional yet threshold-demanding systems.",
+    "summary_ru": "Израиль использует чисто пропорциональную систему в едином национальном округе на 120 мест. Места распределяются методом д'Ондта. Национальный порог — 3,25%; партии, не преодолевшие его, не получают мест. Это одна из наиболее пропорциональных, но и наиболее требовательных по порогу систем в мире.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "ITA": {
+    "summary_en": "Italy uses a mixed system (Rosatellum, in force since 2017): 37% of seats are filled in single-member constituencies by first-past-the-post, and 63% are distributed proportionally by the largest remainder (Hare) method at the national level. A 3% national threshold applies to party lists in the proportional tier.",
+    "summary_ru": "Италия использует смешанную систему «Розателлум» (с 2017 года): 37% мест замещается в одномандатных округах по мажоритарному принципу, 63% — пропорционально методом наибольшего остатка (Хэра) на общенациональном уровне. Национальный порог для партийных списков в пропорциональной части — 3%.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "JPN": {
+    "summary_en": "Japan uses a parallel mixed system for the House of Representatives: 289 seats filled by first-past-the-post in single-member constituencies and 176 seats distributed proportionally by the D'Hondt method in 11 regional blocs. A 2% vote share or one SMC victory is needed to qualify for proportional seats. The two tiers are independent (parallel, not linked).",
+    "summary_ru": "Япония использует параллельную смешанную систему для Палаты представителей: 289 мест по одномандатным округам (относительное большинство) и 176 мест пропорционально методом д'Ондта в 11 региональных блоках. Для участия в пропорциональном распределении необходимо набрать 2% или победить в одномандатном округе. Оба уровня независимы (параллельные, несвязанные).",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "KOR": {
+    "summary_en": "South Korea uses a parallel mixed system: 254 seats are elected in single-member constituencies by first-past-the-post, and 46 seats are distributed proportionally by the D'Hondt method in a single national tier. A 3% national threshold or one constituency victory is required to qualify for proportional seats.",
+    "summary_ru": "Южная Корея использует параллельную смешанную систему: 254 места по одномандатным округам (относительное большинство) и 46 мест пропорционально методом д'Ондта в едином национальном тире. Для допуска к пропорциональному распределению необходимо 3% голосов или победа в одномандатном округе.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "LTU": {
+    "summary_en": "Lithuania uses a mixed electoral system: 71 seats are elected by majority runoff in single-member constituencies, and 70 seats are allocated proportionally by the largest remainder (Hare) method from national party lists. A 5% national threshold applies to the proportional tier.",
+    "summary_ru": "Литва использует смешанную систему: 71 место — по двухтуровому мажоритарному принципу в одномандатных округах, 70 мест — пропорционально методом наибольшего остатка (Хэра) из национальных партийных списков. Для пропорционального тира действует 5%-й национальный порог.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "LUX": {
+    "summary_en": "Luxembourg uses a proportional representation system with seats allocated by the D'Hondt method across four multi-member constituencies. There is no formal national electoral threshold. Voters have multiple votes equal to the number of seats in their constituency and may practise panachage (voting for candidates from different lists).",
+    "summary_ru": "Люксембург использует пропорциональную систему с распределением мест методом д'Ондта в четырёх многомандатных округах. Формального национального порога нет. Каждый избиратель располагает числом голосов, равным числу мест в своём округе, и может применять панашаж (голосовать за кандидатов из разных списков).",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "LVA": {
+    "summary_en": "Latvia uses a proportional representation system with seats allocated by the Sainte-Laguë method across five regional constituencies. A 5% national threshold applies. Voters cast open-list ballots and may give preferential marks (+) or negative marks (–) to individual candidates, affecting their rank within the party list.",
+    "summary_ru": "Латвия использует пропорциональную систему с распределением мест методом Сент-Лагё в пяти региональных округах. Национальный порог — 5%. Избиратели голосуют по открытым спискам и могут ставить знак «+» или «–» конкретным кандидатам, влияя на их место в партийном списке.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "MDA": {
+    "summary_en": "Moldova uses a proportional representation system with 101 seats allocated by the D'Hondt method in a single national constituency. A 5% threshold applies to parties; coalitions face a 7% threshold. The system was temporarily replaced by a mixed parallel system (2017–2021) before reverting to pure PR.",
+    "summary_ru": "Молдова использует пропорциональную систему с распределением 101 места методом д'Ондта в едином национальном округе. Порог для партий — 5%, для коалиций — 7%. В 2017–2021 годах система временно заменялась параллельной смешанной, затем была возвращена чистая ПР.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "MEX": {
+    "summary_en": "Mexico uses a parallel mixed system for the Chamber of Deputies: 300 seats filled by first-past-the-post in single-member constituencies and 200 seats allocated proportionally by the largest remainder method across five regional constituencies. A 3% national vote share is required to receive proportional seats, and no party may hold more than 300 seats in total.",
+    "summary_ru": "Мексика использует параллельную смешанную систему для Палаты депутатов: 300 мест по одномандатным округам (относительное большинство) и 200 мест пропорционально методом наибольшего остатка в пяти региональных округах. Для участия в пропорциональном распределении необходимо 3% голосов; ни одна партия не может иметь более 300 мест в совокупности.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "MKD": {
+    "summary_en": "North Macedonia uses a proportional representation system with seats allocated by the D'Hondt method across six constituencies of 20 seats each. There is no formal electoral threshold at the national level, though the constituency structure creates a natural threshold of around 5%. The electoral system has remained largely stable since independence.",
+    "summary_ru": "Северная Македония использует пропорциональную систему с распределением мест методом д'Ондта в шести округах по 20 мест в каждом. Формального национального порога нет, однако структура округов создаёт естественный барьер около 5%. Система остаётся преимущественно неизменной со времени обретения независимости.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "MLT": {
+    "summary_en": "Malta uses the Single Transferable Vote (STV) system in five multi-member constituencies. There is no formal electoral threshold; candidates must accumulate a Droop quota through preference transfers to win a seat. A constitutional mechanism awards bonus seats to ensure the party with the most first-preference votes holds a parliamentary majority.",
+    "summary_ru": "Мальта использует систему единственного передаваемого голоса (STV) в пяти многомандатных округах. Формального порога нет; кандидат должен набрать квоту Друпа через перераспределение предпочтительных голосов. Конституционный механизм предусматривает бонусные места, чтобы партия с наибольшим числом первых предпочтений имела парламентское большинство.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "MNE": {
+    "summary_en": "Montenegro uses a proportional representation system with seats allocated by the D'Hondt method in a single national constituency of 81 seats. A 3% national threshold applies to parties. Ethnic minority parties are exempt from the threshold requirement.",
+    "summary_ru": "Черногория использует пропорциональную систему с распределением 81 места методом д'Ондта в едином национальном округе. Национальный порог для партий — 3%. Партии национальных меньшинств освобождены от порогового требования.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "NLD": {
+    "summary_en": "The Netherlands uses a highly proportional system with all 150 seats allocated nationally by the D'Hondt method in a single constituency. The effective threshold is approximately 0.67% (one seat's worth of votes). Voters cast a preference vote for an individual candidate, and candidates exceeding a preference quota may overtake their party's list order.",
+    "summary_ru": "Нидерланды используют высоко пропорциональную систему: все 150 мест распределяются методом д'Ондта в едином национальном округе. Эффективный порог составляет около 0,67% (стоимость одного мандата). Избиратели голосуют за конкретного кандидата; кандидаты, набравшие достаточно предпочтительных голосов, могут обойти порядок в партийном списке.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "NOR": {
+    "summary_en": "Norway uses a proportional representation system with seats allocated by the modified Sainte-Laguë method across 19 constituencies, supplemented by 19 national levelling seats. A 4% national threshold is required to qualify for levelling seats. Norway's levelling mechanism makes the final result highly proportional to national vote shares.",
+    "summary_ru": "Норвегия использует пропорциональную систему с распределением мест модифицированным методом Сент-Лагё в 19 округах, дополненную 19 общенациональными выравнивающими мандатами. Для получения выравнивающих мест необходим 4%-й национальный порог. Выравнивающий механизм обеспечивает точное соответствие итогового состава парламента общенациональным результатам голосования.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "NZL": {
+    "summary_en": "New Zealand uses a mixed-member proportional (MMP) system with 72 single-member electorate seats and 48 list seats allocated by the Sainte-Laguë method. A party must clear the 5% party-vote threshold or win at least one electorate seat to qualify for list seats. The system closely mirrors the German model.",
+    "summary_ru": "Новая Зеландия использует смешанную связанную пропорциональную систему (MMP): 72 одномандатных округа и 48 мест по партийным спискам, распределяемых методом Сент-Лагё. Порог — 5% голосов за партию или победа хотя бы в одном избирательном округе. Система построена по образцу немецкой.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "POL": {
+    "summary_en": "Poland uses a proportional representation system with seats allocated by the D'Hondt method across 41 multi-member constituencies. A 5% national threshold applies to individual parties and a 8% threshold to electoral coalitions. Voters cast an open-list preference vote for a single candidate within their chosen party list.",
+    "summary_ru": "Польша использует пропорциональную систему с распределением мест методом д'Ондта в 41 многомандатном округе. Национальный порог для партий — 5%, для коалиций — 8%. Избиратели отдают предпочтительный голос за конкретного кандидата из выбранного партийного списка.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "PRT": {
+    "summary_en": "Portugal uses a proportional representation system with seats allocated by the D'Hondt method across 22 multi-member constituencies corresponding to mainland districts and overseas territories. There is no national electoral threshold; the effective barrier is determined by constituency size. Voters choose between closed party lists.",
+    "summary_ru": "Португалия использует пропорциональную систему с распределением мест методом д'Ондта в 22 многомандатных округах, соответствующих материковым районам и заморским территориям. Национального избирательного порога нет; эффективный барьер определяется размером округа. Избиратели выбирают между закрытыми партийными списками.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "ROU": {
+    "summary_en": "Romania uses a proportional representation system with seats allocated by the D'Hondt method. A 5% national threshold applies to parties; coalitions face higher thresholds. The current system replaced a short-lived uninominal mixed system used only in 2008 and 2012.",
+    "summary_ru": "Румыния использует пропорциональную систему с распределением мест методом д'Ондта. Национальный порог для партий — 5%; для коалиций он выше. Нынешняя система заменила кратковременную унономинальную смешанную систему, применявшуюся только в 2008 и 2012 годах.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "SRB": {
+    "summary_en": "Serbia uses a proportional representation system with all 250 seats allocated by the D'Hondt method in a single national constituency. A 3% national threshold applies to parties. This design gives smaller parties a reasonable chance to enter parliament while the low threshold reflects a compromise between proportionality and governability.",
+    "summary_ru": "Сербия использует пропорциональную систему с распределением всех 250 мест методом д'Ондта в едином национальном округе. Национальный порог — 3%. Такая конструкция даёт небольшим партиям реальный шанс пройти в парламент, а низкий порог отражает баланс между пропорциональностью и управляемостью.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "SVK": {
+    "summary_en": "Slovakia uses a proportional representation system with 150 seats allocated by the Hagenbach-Bischoff quota across a single national constituency. A 5% national threshold applies to parties; coalitions of two or three parties face 7% and 10% thresholds respectively. Voters may cast four preferential votes to promote candidates within party lists.",
+    "summary_ru": "Словакия использует пропорциональную систему с распределением 150 мест по квоте Хагенбаха–Бишофа в едином национальном округе. Национальный порог для партий — 5%; для коалиций двух и трёх партий — 7% и 10% соответственно. Избиратели могут отдать до четырёх предпочтительных голосов кандидатам внутри партийных списков.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "SVN": {
+    "summary_en": "Slovenia uses a proportional representation system with seats allocated by the D'Hondt method across eight constituencies. A 4% national threshold applies. Voters cast a preferential vote for a candidate within their chosen party list, which can alter candidate ordering if the preference vote total is high enough.",
+    "summary_ru": "Словения использует пропорциональную систему с распределением мест методом д'Ондта в восьми округах. Национальный порог — 4%. Избиратели отдают предпочтительный голос за кандидата внутри партийного списка; при достаточном количестве предпочтительных голосов порядок кандидатов может измениться.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "SWE": {
+    "summary_en": "Sweden uses a proportional representation system with 310 constituency seats allocated by the modified Sainte-Laguë method and 39 national levelling seats. A 4% national threshold is required to enter parliament; alternatively, a party may win at least 12% in any single constituency. The levelling mechanism ensures the overall result closely mirrors national vote shares.",
+    "summary_ru": "Швеция использует пропорциональную систему: 310 мест в округах распределяется модифицированным методом Сент-Лагё и 39 общенациональных выравнивающих мандата. Для прохождения в парламент необходим 4%-й национальный порог или не менее 12% в любом отдельном округе. Выравнивающий механизм обеспечивает точное соответствие итогов голосования общенациональным результатам.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "TWN": {
+    "summary_en": "Taiwan uses a parallel mixed system: 73 seats filled in single-member constituencies by first-past-the-post, and 34 seats allocated proportionally by the D'Hondt method in a single national tier. A 5% national threshold applies to the proportional tier. An additional 6 seats are reserved for indigenous peoples.",
+    "summary_ru": "Тайвань использует параллельную смешанную систему: 73 места по одномандатным округам (относительное большинство) и 34 места пропорционально методом д'Ондта в едином национальном тире. Для пропорционального тира действует 5%-й порог. Ещё 6 мест зарезервировано для коренных народов.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "TUR": {
+    "summary_en": "Turkey uses a proportional representation system with seats allocated by the D'Hondt method across 87 multi-member constituencies. A 7% national threshold applies (reduced from 10% in 2022). Parties or alliances failing to meet the threshold receive no seats, a provision that has historically concentrated parliamentary power.",
+    "summary_ru": "Турция использует пропорциональную систему с распределением мест методом д'Ондта в 87 многомандатных округах. Национальный порог — 7% (снижен с 10% в 2022 году). Партии и альянсы, не преодолевшие порог, не получают мест — это исторически концентрировало парламентское представительство.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "UKR": {
+    "summary_en": "Ukraine uses a parallel mixed system: 225 seats filled in single-member constituencies by first-past-the-post, and 225 seats allocated proportionally from closed national party lists. A 5% national threshold applies to the proportional tier. Elections have been suspended during the ongoing state of war.",
+    "summary_ru": "Украина использует параллельную смешанную систему: 225 мест по одномандатным округам (относительное большинство) и 225 мест пропорционально из закрытых национальных партийных списков. Для пропорционального тира действует 5%-й национальный порог. Выборы приостановлены в связи с продолжающимся военным положением.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  },
+  "ZAF": {
+    "summary_en": "South Africa uses a highly proportional representation system with 400 National Assembly seats allocated by the largest remainder (Droop quota) method in a single national constituency. There is no formal electoral threshold. A recent reform (2024) introduced a partial independent candidacy system alongside party lists.",
+    "summary_ru": "Южная Африка использует высоко пропорциональную систему: 400 мест Национальной ассамблеи распределяются методом наибольшего остатка (квота Друпа) в едином национальном округе. Формального избирательного порога нет. Реформа 2024 года ввела частичную возможность выдвижения независимых кандидатов наряду с партийными списками.",
+    "law_name": null,
+    "law_url": null,
+    "generated_at": "2026-04-20T00:00:00+00:00"
+  }
+}
