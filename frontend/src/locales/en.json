@@ -79,7 +79,16 @@
     "cleaDownloadDuckdb": "Download aggregated .duckdb",
     "sourceClea": "source: CLEA",
     "openCalc": "Open in calculator",
-    "toCalcBlank": "Blank calculator"
+    "toCalcBlank": "Blank calculator",
+    "tabParties": "Parties",
+    "tabSystem": "Electoral System",
+    "generateSummary": "Generate summary",
+    "summaryApiKeyLabel": "Anthropic API key",
+    "summaryApiKeyPlaceholder": "sk-ant-...",
+    "summaryGenerating": "Generating…",
+    "summaryLawSource": "Source: {{name}}",
+    "summaryNoLaw": "No electoral law found in the database for this country.",
+    "summaryGenerate": "Generate"
   },
   "footer": "For learning and analysis—not an official tally or a legal election forecast.",
   "footerAuthor": "Author:",

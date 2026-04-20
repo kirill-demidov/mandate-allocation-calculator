@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import type { CalculatorPrefillState } from "../types/calculatorPrefill";
 import type {
+  CountrySummary,
   ReferenceCountry,
   ReferenceElectionDetail,
   UnifiedElectionRow,
@@ -14,7 +15,9 @@ import {
   fetchReferenceElectionDetail,
   fetchReferencePrefill,
   fetchReferenceStatus,
+  fetchSummaries,
   fetchUnifiedElections,
+  postGenerateSummary,
   postReferenceRefresh,
   referenceDuckdbDownloadHref,
 } from "../api/client";
@@ -38,6 +41,9 @@ function InlineDetail({
   setThreshold,
   prefillBusy,
   onOpenCalculator,
+  countrySummary,
+  lang,
+  onGenerateSummary,
   t,
 }: {
   detail: ReferenceElectionDetail;
@@ -47,8 +53,50 @@ function InlineDetail({
   setThreshold: (v: number) => void;
   prefillBusy: boolean;
   onOpenCalculator: () => void;
+  countrySummary: CountrySummary | null;
+  lang: string;
+  onGenerateSummary: (apiKey: string) => Promise<CountrySummary>;
   t: (k: string, opts?: Record<string, unknown>) => string;
 }) {
+  const [activeTab, setActiveTab] = useState<"parties" | "system">("parties");
+  const [showModal, setShowModal] = useState(false);
+  const [apiKey, setApiKey] = useState("");
+  const [generateBusy, setGenerateBusy] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const [localSummary, setLocalSummary] = useState<CountrySummary | null>(null);
+
+  const currentSummary = localSummary ?? countrySummary;
+  const apiKeyRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setLocalSummary(null);
+    setActiveTab("parties");
+  }, [detail.election_date, detail.country_code]);
+
+  useEffect(() => {
+    if (showModal) setTimeout(() => apiKeyRef.current?.focus(), 50);
+  }, [showModal]);
+
+  async function handleGenerate() {
+    if (!apiKey.trim()) return;
+    setGenerateBusy(true);
+    setGenerateError(null);
+    try {
+      const result = await onGenerateSummary(apiKey.trim());
+      setLocalSummary(result);
+      setShowModal(false);
+      setApiKey("");
+    } catch (e) {
+      setGenerateError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setGenerateBusy(false);
+    }
+  }
+
+  const summaryText = currentSummary
+    ? (lang === "ru" ? currentSummary.summary_ru : currentSummary.summary_en) || currentSummary.summary_en
+    : null;
+
   return (
     <div className="ref-inline-detail">
       <p className="muted" style={{ marginBottom: "0.4rem" }}>
@@ -65,69 +113,181 @@ function InlineDetail({
             ? t("ref.seatsTierCleaNoMag")
             : t("ref.seatsTierParlgov")}
       </p>
-      <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.75rem", flexWrap: "wrap" }}>
-        <label className="field" style={{ maxWidth: "10rem", margin: 0 }}>
-          <span>{t("ref.thresholdLabel")}</span>
-          <input
-            type="number"
-            min={0}
-            max={100}
-            step={0.1}
-            value={threshold}
-            onChange={(e) => setThreshold(Number(e.target.value))}
-          />
-        </label>
-        <div style={{ display: "flex", gap: "0.5rem", marginTop: "1.2rem" }}>
-          <button type="button" className="btn btn-primary" disabled={prefillBusy} onClick={onOpenCalculator}>
-            {t("ref.openCalc")}
-          </button>
-          <Link className="btn btn-secondary" to="/app">{t("ref.toCalcBlank")}</Link>
-        </div>
+
+      {/* Tab switcher */}
+      <div className="ref-tabs" style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem" }}>
+        <button
+          type="button"
+          className={`btn btn-sm${activeTab === "parties" ? " btn-active" : ""}`}
+          onClick={() => setActiveTab("parties")}
+        >
+          {t("ref.tabParties")}
+        </button>
+        <button
+          type="button"
+          className={`btn btn-sm${activeTab === "system" ? " btn-active" : ""}`}
+          onClick={() => setActiveTab("system")}
+        >
+          {t("ref.tabSystem")}
+        </button>
       </div>
-      {detailSplit ? (
-        <div className="table-wrap">
-          <table className="data table-ref-detail">
-            <colgroup>
-              <col style={{ width: "36%" }} />
-              <col style={{ width: "16%" }} />
-              <col style={{ width: "16%" }} />
-              <col style={{ width: "16%" }} />
-              <col style={{ width: "16%" }} />
-            </colgroup>
-            <thead>
-              <tr>
-                <th scope="col">{t("ref.colParty")}</th>
-                <th scope="col" className="num">{t("ref.colShareOfficial")}</th>
-                <th scope="col" className="num">{t("ref.colShareRenorm")}</th>
-                <th scope="col" className="num">{seatsColLabel}</th>
-                <th scope="col" className="num">{t("ref.colVotesEst")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {detailSplit.rows.map(({ party: p, renorm }) => (
-                <tr key={p.name}>
-                  <td className="party-cell">{p.name}</td>
-                  <td className="num">{p.vote_share != null ? `${p.vote_share.toFixed(2)}%` : "—"}</td>
-                  <td className="num">{renorm != null ? `${renorm.toFixed(2)}%` : "—"}</td>
-                  <td className="num">{p.seats_recorded ?? "—"}</td>
-                  <td className="num">{p.votes_estimated ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-            {detailSplit.sumOfficial > 0 ? (
-              <tfoot>
-                <tr className="ref-detail-tfoot">
-                  <th scope="row">{t("ref.rowTotal")}</th>
-                  <td className="num">{detailSplit.sumOfficial.toFixed(2)}%</td>
-                  <td className="num">100.00%</td>
-                  <td className="num">{detailSplit.seatsCounted > 0 ? detailSplit.sumSeats : "—"}</td>
-                  <td className="num">{detailSplit.votesCounted > 0 ? detailSplit.sumVotesEst : "—"}</td>
-                </tr>
-              </tfoot>
-            ) : null}
-          </table>
+
+      {activeTab === "parties" ? (
+        <>
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.75rem", flexWrap: "wrap" }}>
+            <label className="field" style={{ maxWidth: "10rem", margin: 0 }}>
+              <span>{t("ref.thresholdLabel")}</span>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                step={0.1}
+                value={threshold}
+                onChange={(e) => setThreshold(Number(e.target.value))}
+              />
+            </label>
+            <div style={{ display: "flex", gap: "0.5rem", marginTop: "1.2rem" }}>
+              <button type="button" className="btn btn-primary" disabled={prefillBusy} onClick={onOpenCalculator}>
+                {t("ref.openCalc")}
+              </button>
+              <Link className="btn btn-secondary" to="/app">{t("ref.toCalcBlank")}</Link>
+            </div>
+          </div>
+          {detailSplit ? (
+            <div className="table-wrap">
+              <table className="data table-ref-detail">
+                <colgroup>
+                  <col style={{ width: "36%" }} />
+                  <col style={{ width: "16%" }} />
+                  <col style={{ width: "16%" }} />
+                  <col style={{ width: "16%" }} />
+                  <col style={{ width: "16%" }} />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th scope="col">{t("ref.colParty")}</th>
+                    <th scope="col" className="num">{t("ref.colShareOfficial")}</th>
+                    <th scope="col" className="num">{t("ref.colShareRenorm")}</th>
+                    <th scope="col" className="num">{seatsColLabel}</th>
+                    <th scope="col" className="num">{t("ref.colVotesEst")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {detailSplit.rows.map(({ party: p, renorm }) => (
+                    <tr key={p.name}>
+                      <td className="party-cell">{p.name}</td>
+                      <td className="num">{p.vote_share != null ? `${p.vote_share.toFixed(2)}%` : "—"}</td>
+                      <td className="num">{renorm != null ? `${renorm.toFixed(2)}%` : "—"}</td>
+                      <td className="num">{p.seats_recorded ?? "—"}</td>
+                      <td className="num">{p.votes_estimated ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                {detailSplit.sumOfficial > 0 ? (
+                  <tfoot>
+                    <tr className="ref-detail-tfoot">
+                      <th scope="row">{t("ref.rowTotal")}</th>
+                      <td className="num">{detailSplit.sumOfficial.toFixed(2)}%</td>
+                      <td className="num">100.00%</td>
+                      <td className="num">{detailSplit.seatsCounted > 0 ? detailSplit.sumSeats : "—"}</td>
+                      <td className="num">{detailSplit.votesCounted > 0 ? detailSplit.sumVotesEst : "—"}</td>
+                    </tr>
+                  </tfoot>
+                ) : null}
+              </table>
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <div className="ref-system-tab" style={{ maxWidth: "42rem" }}>
+          {currentSummary ? (
+            <>
+              <p style={{ marginBottom: "0.5rem" }}>{summaryText}</p>
+              {currentSummary.law_name && (
+                <p className="muted" style={{ fontSize: "0.85em" }}>
+                  {currentSummary.law_url ? (
+                    <a href={currentSummary.law_url} target="_blank" rel="noopener noreferrer">
+                      {t("ref.summaryLawSource", { name: currentSummary.law_name })}
+                    </a>
+                  ) : (
+                    t("ref.summaryLawSource", { name: currentSummary.law_name })
+                  )}
+                </p>
+              )}
+              <button
+                type="button"
+                className="btn btn-sm"
+                style={{ marginTop: "0.75rem" }}
+                onClick={() => setShowModal(true)}
+              >
+                {t("ref.generateSummary")}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => setShowModal(true)}
+            >
+              {t("ref.generateSummary")}
+            </button>
+          )}
         </div>
-      ) : null}
+      )}
+
+      {/* API key modal */}
+      {showModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: "fixed", inset: 0, zIndex: 1000,
+            background: "rgba(0,0,0,0.45)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
+        >
+          <div style={{
+            background: "var(--bg, #fff)", borderRadius: "8px", padding: "1.5rem",
+            maxWidth: "22rem", width: "90%", boxShadow: "0 4px 24px rgba(0,0,0,0.18)",
+          }}>
+            <label className="field">
+              <span>{t("ref.summaryApiKeyLabel")}</span>
+              <input
+                ref={apiKeyRef}
+                type="password"
+                placeholder={t("ref.summaryApiKeyPlaceholder")}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") void handleGenerate(); }}
+              />
+            </label>
+            {generateError && (
+              <p style={{ color: "var(--error, #c00)", fontSize: "0.85em", marginTop: "0.4rem" }}>
+                {generateError}
+              </p>
+            )}
+            <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={generateBusy || !apiKey.trim()}
+                onClick={() => void handleGenerate()}
+              >
+                {generateBusy ? t("ref.summaryGenerating") : t("ref.summaryGenerate")}
+              </button>
+              <button
+                type="button"
+                className="btn"
+                disabled={generateBusy}
+                onClick={() => { setShowModal(false); setGenerateError(null); }}
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -143,7 +303,8 @@ function cleaEnabled(s: Record<string, unknown> | null): boolean {
 }
 
 export function Reference() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language;
   const navigate = useNavigate();
   const [status, setStatus] = useState<Record<string, unknown> | null>(null);
   const [countries, setCountries] = useState<ReferenceCountry[]>([]);
@@ -164,6 +325,7 @@ export function Reference() {
   const [refreshBusy, setRefreshBusy] = useState(false);
   const [refreshMsg, setRefreshMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [summaries, setSummaries] = useState<Record<string, CountrySummary>>({});
 
   const canLoadMore = useMemo(
     () => unifiedElections.length < unifiedTotal,
@@ -188,9 +350,13 @@ export function Reference() {
       setError(null);
       try {
         await refreshStatus();
-        const list = await fetchReferenceCountries();
+        const [list, sums] = await Promise.all([
+          fetchReferenceCountries(),
+          fetchSummaries().catch(() => ({} as Record<string, CountrySummary>)),
+        ]);
         if (cancelled) return;
         setCountries(list);
+        setSummaries(sums);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
       } finally {
@@ -588,6 +754,20 @@ export function Reference() {
                                   setThreshold={setThreshold}
                                   prefillBusy={prefillBusy}
                                   onOpenCalculator={() => void onOpenCalculator()}
+                                  countrySummary={summaries[detail.country_code ?? ""] ?? null}
+                                  lang={lang}
+                                  onGenerateSummary={async (apiKey) => {
+                                    const result = await postGenerateSummary({
+                                      country_code: detail.country_code ?? "",
+                                      country_name: detail.country_name ?? "",
+                                      anthropic_key: apiKey,
+                                    });
+                                    setSummaries((prev) => ({
+                                      ...prev,
+                                      [detail.country_code ?? ""]: result,
+                                    }));
+                                    return result;
+                                  }}
                                   t={t}
                                 />
                               ) : null}

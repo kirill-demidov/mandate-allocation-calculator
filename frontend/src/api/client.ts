@@ -2,6 +2,7 @@ import type {
   CalculateRequest,
   CalculateResponse,
   CleaElectionRow,
+  CountrySummary,
   ReferenceCountry,
   ReferenceElectionDetail,
   ReferenceElectionsResponse,
@@ -218,6 +219,26 @@ export async function fetchCleaPrefill(
 
 export function cleaDuckdbDownloadHref(): string {
   return `${base}/api/reference/clea/duckdb`;
+}
+
+export async function fetchSummaries(): Promise<Record<string, CountrySummary>> {
+  const res = await fetch(`${base}/api/reference/summaries`);
+  if (!res.ok) throw new Error(await parseError(res));
+  return (await res.json()) as Record<string, CountrySummary>;
+}
+
+export async function postGenerateSummary(body: {
+  country_code: string;
+  country_name: string;
+  anthropic_key: string;
+}): Promise<CountrySummary & { country_code: string }> {
+  const res = await fetch(`${base}/api/reference/generate-summary`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  return (await res.json()) as CountrySummary & { country_code: string };
 }
 
 export function referenceDuckdbDownloadHref(): string {

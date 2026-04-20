@@ -8,9 +8,46 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Path, Query
 from fastapi.responses import FileResponse
 
+from pydantic import BaseModel
+
 from app.reference_store import get_reference_store
+from app.summary_store import generate_summary, load_summaries
 
 router = APIRouter(prefix="/api/reference", tags=["reference"])
+
+
+class GenerateSummaryRequest(BaseModel):
+    country_code: str
+    country_name: str
+    anthropic_key: str
+
+
+@router.get("/summaries")
+async def reference_summaries() -> dict[str, object]:
+    """Все сохранённые выжимки из избирательных законов."""
+    return await asyncio.to_thread(load_summaries)
+
+
+@router.post("/generate-summary")
+async def reference_generate_summary(
+    req: GenerateSummaryRequest,
+) -> dict[str, object]:
+    """Сгенерировать выжимку для одной страны через Claude API."""
+    if not req.anthropic_key.strip():
+        raise HTTPException(status_code=400, detail="anthropic_key is required")
+    if not req.country_code.strip() or not req.country_name.strip():
+        raise HTTPException(status_code=400, detail="country_code and country_name are required")
+    try:
+        return await asyncio.to_thread(
+            generate_summary,
+            req.country_code.strip(),
+            req.country_name.strip(),
+            req.anthropic_key.strip(),
+        )
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Generation failed: {e}") from e
 
 
 @router.post("/refresh")

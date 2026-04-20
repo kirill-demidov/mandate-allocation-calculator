@@ -106,3 +106,11 @@ export type ReferencePrefillResponse = {
   parties: { name: string; votePercent: string; seatsRecorded?: number | null }[];
   meta?: Record<string, unknown>;
 };
+
+export type CountrySummary = {
+  summary_en: string;
+  summary_ru: string;
+  law_name: string | null;
+  law_url: string | null;
+  generated_at: string;
+};

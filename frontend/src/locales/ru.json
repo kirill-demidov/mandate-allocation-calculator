@@ -79,7 +79,16 @@
     "cleaDownloadDuckdb": "Скачать агрегированный .duckdb",
     "sourceClea": "источник: CLEA",
     "openCalc": "Открыть в калькуляторе",
-    "toCalcBlank": "К пустому калькулятору"
+    "toCalcBlank": "К пустому калькулятору",
+    "tabParties": "Партии",
+    "tabSystem": "Изб. система",
+    "generateSummary": "Сформировать выжимку",
+    "summaryApiKeyLabel": "Ключ Anthropic API",
+    "summaryApiKeyPlaceholder": "sk-ant-...",
+    "summaryGenerating": "Генерирую…",
+    "summaryLawSource": "Источник: {{name}}",
+    "summaryNoLaw": "Для этой страны закон не найден в базе.",
+    "summaryGenerate": "Сгенерировать"
   },
   "footer": "Сервис для разбора и учёбы: это не официальный протокол и не юридический прогноз выборов.",
   "footerAuthor": "Автор:",

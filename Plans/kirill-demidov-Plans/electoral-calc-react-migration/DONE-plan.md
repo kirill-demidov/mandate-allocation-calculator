@@ -1,5 +1,6 @@
 CREATED: 2026-04-19 | claude-sonnet-4-6
 APPROVED: 2026-04-19 | claude-sonnet-4-6
+DONE & IMPLEMENTED | 2026-04-20 | claude-sonnet-4-6
 
 # План: mandate-allocation-calculator — React + Python API, Docker, DO, electoral-calc.org
 
