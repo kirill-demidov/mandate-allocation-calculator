@@ -1,39 +1,108 @@
-# Mandate allocation calculator (electoral-calc.org)
+# Mandate Allocation Calculator — electoral-calc.org
 
-Веб‑сервис для сравнения распределения мандатов по правилам **Хэйра**, **Друпа**, **Сент‑Лагю**, **Д'Ондта** и **Империали**. Фронтенд: **React (Vite)**, расчёты и Excel: **Python (FastAPI)**. Старый интерфейс на Streamlit лежит в каталоге `legacy/`.
+A web service for comparing parliamentary seat allocation under five methods: **Hare**, **Droop**, **Sainte-Laguë**, **D'Hondt**, and **Imperiali**. The frontend is built with **React (Vite)**; calculations and Excel export run on **Python (FastAPI)**. A legacy Streamlit interface lives in `legacy/`.
 
-## Быстрый старт (Docker)
+## Features
 
-1. Скопируйте `.env.example` в `.env` при необходимости.
-2. Выполните:
+- **Calculator** — enter vote percentages, set total seats and an electoral threshold, get all five methods side by side. Export to Excel.
+- **Election reference** — unified list of parliamentary elections from **ParlGov** (~800 elections, ~40 countries) and **CLEA** (constituency-level data aggregated by country). Click any election to prefill the calculator with real vote shares.
+- **Electoral thresholds** — legal thresholds for ~46 countries are baked into the reference and pre-filled automatically when you open an election.
+- **Electoral System tab** — each election detail includes a 2–3 sentence summary of the country's electoral system (EN + RU). Pre-generated for all threshold countries; regenerate via the UI with your own Anthropic API key.
+- **Actual vs. theoretical** — when the reference prefills the calculator, a real seat column appears alongside the five theoretical methods. A collapsible note explains common reasons for divergence (district-level allocation, mixed systems, bonus seats, etc.).
+- **i18n** — English and Russian, toggle in the UI.
+
+---
+
+## Quick start (Docker)
 
 ```bash
 docker compose up --build
 ```
 
-3. Откройте **http://127.0.0.1:9080** — по умолчанию Caddy снаружи слушает только **loopback** и **не занимает** **80/443** на хосте. Так и задумано для обычного случая: на дроплете уже крутится **nginx** (или что-то ещё) на публичных портах, а этот стек живёт рядом как отдельный сервис за обратным прокси.
+Open **http://127.0.0.1:9080**. By default Caddy binds only to loopback and does not occupy ports 80/443 on the host — designed for a droplet that already runs nginx for other sites.
 
-**Не путать с «Caddy на весь интернет»:** проброс `CADDY_PUBLISH=0.0.0.0:80` и TLS внутри Caddy имеют смысл **только** если машина **целиком** отдана под этот один сайт и на **80/443** никто больше не слушает. Если на том же IP другие сайты или сервисы — так делать нельзя; см. раздел ниже про nginx.
+---
 
-## Дроплет с несколькими сайтами (nginx + этот стек)
+## Production: electoral-calc.org on DigitalOcean
 
-**Основная прод-схема из репозитория:** контейнеры публикуют приложение на **127.0.0.1:9080** (дефолт в `docker-compose.yml`). Системный **nginx** (или аналог) по-прежнему держит **80/443** для всего остального; для `electoral-calc.org` добавляется один `server` с `proxy_pass` на `http://127.0.0.1:9080`. Существующие виртуальные хосты не трогаются, кроме явно нового файла для домена калькулятора.
+The standard setup: one droplet, nginx on 80/443 for all sites, this stack on **127.0.0.1:9080**, nginx proxies the calculator domain.
 
-1. Поднимите контейнеры из каталога проекта (без правки системного nginx):
+### 1. DNS
+
+At your registrar for `electoral-calc.org`:
+- **A** record for `@` → droplet's public IPv4
+- **A** for `www` → same IP (or **CNAME** `www` → `electoral-calc.org`)
+
+Verify with `dig +short electoral-calc.org A`.
+
+### 2. Droplet
+
+- Ubuntu LTS, **Docker Engine** + Compose plugin ([official guide](https://docs.docker.com/engine/install/ubuntu/))
+- **ufw**: ports **22**, **80**, **443** open
+
+### 3. Clone and configure
+
+```bash
+sudo mkdir -p /opt/mandate-allocation-calculator
+sudo chown "$USER":"$USER" /opt/mandate-allocation-calculator
+cd /opt/mandate-allocation-calculator
+git clone https://github.com/YOUR_LOGIN/mandate-allocation-calculator.git .
+```
+
+Create `.env` next to `docker-compose.yml`:
+
+```env
+# Caddy serves HTTP on :80; only exposed on loopback — no conflict with nginx.
+DOMAIN=:80
+# CADDY_PUBLISH=127.0.0.1:9080   # default; change only if needed
+
+# Optional: override CORS (defaults already include https://electoral-calc.org)
+# CORS_ORIGINS=https://electoral-calc.org,https://www.electoral-calc.org
+
+# Optional: Google Analytics 4
+# VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+```
+
+Start:
 
 ```bash
 docker compose up -d --build
+curl -sS http://127.0.0.1:9080/api/health   # → {"status":"ok"}
 ```
 
-2. Скопируйте пример и вручную подключите его в nginx (после проверки `nginx -t` и `systemctl reload nginx`):
+### 4. Nginx + HTTPS
 
-- `deploy/nginx-electoral-calc.conf.example`
+```bash
+sudo cp deploy/nginx-electoral-calc.conf.example /etc/nginx/sites-available/electoral-calc.org
+sudo ln -sf /etc/nginx/sites-available/electoral-calc.org /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+sudo certbot --nginx -d electoral-calc.org -d www.electoral-calc.org
+```
 
-3. Выпустите сертификат (когда DNS **A** уже указывает на IP дроплета), например: `certbot --nginx -d electoral-calc.org -d www.electoral-calc.org`.
+Then open `https://electoral-calc.org` (landing), `/app` (calculator), `/reference` (election reference).
 
-## Локальная разработка без Docker
+### 5. GitHub Actions (auto-deploy on push)
 
-**API:**
+Add these secrets in **Settings → Secrets and variables → Actions**:
+
+| Secret | Value |
+|--------|-------|
+| `DO_HOST` | droplet IP or hostname |
+| `DO_USER` | SSH user (`root` or `deploy`) |
+| `DO_SSH_KEY` | full PEM private key |
+| `DO_DEPLOY_PATH` | e.g. `/opt/mandate-allocation-calculator` |
+
+Workflow (`.github/workflows/ci.yml`) on push to `master`: `git pull` → `docker compose build` → `docker compose up -d`.
+
+### Single-server setup (Caddy handles TLS)
+
+Only if this is the **only** site on the machine and nothing else listens on 80/443. Set `CADDY_PUBLISH=0.0.0.0:80` and `DOMAIN=electoral-calc.org` in `.env`; Caddy will obtain the certificate itself.
+
+---
+
+## Local development (without Docker)
+
+**Backend:**
 
 ```bash
 cd backend
@@ -42,7 +111,7 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
 ```
 
-**Фронтенд** (проксирует `/api` на порт 8001):
+**Frontend** (proxies `/api` to port 8001):
 
 ```bash
 cd frontend
@@ -50,163 +119,95 @@ npm install
 npm run dev
 ```
 
-## Продакшен: `electoral-calc.org` на DigitalOcean (чеклист)
+---
 
-Ниже описан **типичный** вариант: один дроплет, на нём уже **nginx** на **80/443** (другие проекты, лендинги, API за тем же IP). Калькулятор не претендует на эти порты: внутри Docker Caddy отдаёт сайт на **127.0.0.1:9080**, наружу домен ведёт **nginx** с TLS (certbot и т.п.).
+## Election reference (ParlGov + CLEA)
 
-### 1. DNS
+On first backend start the app downloads **ParlGov** CSVs and builds a local **DuckDB** file (`reference.duckdb` in the Docker volume `./data/parlgov` — survives restarts). On the reference page you can filter by country, date range, source (ParlGov / CLEA), and open any election directly in the calculator.
 
-У регистратора домена `electoral-calc.org`:
+**Electoral thresholds** for ~46 countries (ISO alpha-3 codes) are stored in `backend/app/thresholds.json` and baked into `ref_party_election` at build time via a SQL JOIN. They are pre-filled when you open an election from the reference.
 
-- Запись **A** для `@` (корень) → публичный **IPv4** дроплета.
-- По желанию **A** для `www` → тот же IP (или **CNAME** `www` → `electoral-calc.org`).
+### CLEA (constituency-level data)
 
-Подождите распространения DNS (от минут до часов). Проверка: `dig +short electoral-calc.org A`.
+Place a UTF-8 CSV (standard CLEA layout) and set **`CLEA_CSV_PATH`** or **`CLEA_DATA_DIR`** (see `.env.example`). The backend aggregates it into `ref_party_election` alongside ParlGov:
 
-### 2. Дроплет
+- valid votes summed per country/election date
+- party vote shares and estimated votes
+- seats summed across constituencies (if `seat` column present)
+- threshold from `tm` / `threshold` column (values 0–1 treated as fractions, converted to %)
 
-- Ubuntu LTS, **Docker Engine** и плагин **Compose** ([официальная инструкция](https://docs.docker.com/engine/install/ubuntu/)).
-- **Firewall** (`ufw`): открыты **22**, **80**, **443** (и что ещё нужно для других сервисов).
-
-### 3. Код на сервере
-
-```bash
-sudo mkdir -p /opt/mandate-allocation-calculator
-sudo chown "$USER":"$USER" /opt/mandate-allocation-calculator
-cd /opt/mandate-allocation-calculator
-git clone https://github.com/YOUR_LOGIN/mandate-allocation-calculator.git .
-# или git remote + pull, если репозиторий приватный — настройте deploy key / SSH
-```
-
-Создайте `.env` в корне проекта (рядом с `docker-compose.yml`):
-
-```env
-# Caddy внутри контейнера — HTTP на :80; наружу только loopback (не конфликтует с nginx).
-DOMAIN=:80
-
-# Явно (можно не задавать — такой же дефолт в compose):
-# CADDY_PUBLISH=127.0.0.1:9080
-
-# Опционально: если хотите задать CORS вручную (иначе в backend уже зашиты https://electoral-calc.org и https://www.electoral-calc.org)
-# CORS_ORIGINS=https://electoral-calc.org,https://www.electoral-calc.org
-```
-
-Запуск:
-
-```bash
-docker compose up -d --build
-curl -sS http://127.0.0.1:9080/api/health
-```
-
-Должно вернуть `{"status":"ok"}`.
-
-### 4. Nginx + HTTPS
-
-1. Скопируйте пример в конфиг nginx (путь может отличаться, например Debian/Ubuntu):
-
-   ```bash
-   sudo cp deploy/nginx-electoral-calc.conf.example /etc/nginx/sites-available/electoral-calc.org
-   sudo ln -sf /etc/nginx/sites-available/electoral-calc.org /etc/nginx/sites-enabled/
-   sudo nginx -t && sudo systemctl reload nginx
-   ```
-
-2. Когда **A-запись** уже смотрит на IP дроплета, выпустите сертификат (пример с certbot для nginx):
-
-   ```bash
-   sudo certbot --nginx -d electoral-calc.org -d www.electoral-calc.org
-   ```
-
-3. Откройте в браузере: `https://electoral-calc.org` — лендинг, `/app` — калькулятор, `/api/health` — проверка API.
-
-Если после включения HTTPS браузер ругается на API: убедитесь, что запросы идут на **тот же хост** (без смешения `www` и apex без редиректа) и что в ответах API не блокирует CORS — при пустом `CORS_ORIGINS` в backend уже разрешены `https://electoral-calc.org` и `https://www.electoral-calc.org`.
-
-### Аналитика: Google Analytics 4 (бесплатно)
-
-В [Google Analytics](https://analytics.google.com/) создайте ресурс **GA4** и поток для веб-сайта — получите идентификатор вида **`G-XXXXXXXXXX`**.
-
-На сервере в `.env` рядом с `docker-compose.yml` добавьте:
-
-```env
-VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
-```
-
-Затем пересоберите образ фронта (переменная подставляется на этапе **`docker compose build`**, не в рантайме):
-
-```bash
-docker compose build --no-cache caddy && docker compose up -d
-```
-
-Пока переменная не задана, счётчик **не подключается**. В отчётах GA4 будут страницы (включая SPA-маршруты `/`, `/app`, …), источники трафика, география и т.д. Локально при `npm run dev` можно положить то же имя в `frontend/.env` как `VITE_GA_MEASUREMENT_ID=...`.
-
-### 5. GitHub Actions (автодеплой по push)
-
-В репозитории на GitHub → **Settings → Secrets and variables → Actions** добавьте:
-
-| Секрет | Смысл |
-|--------|--------|
-| `DO_HOST` | IP или хост SSH (часто IP дроплета) |
-| `DO_USER` | пользователь SSH (`root` или `deploy`) |
-| `DO_SSH_KEY` | приватный ключ PEM целиком |
-| `DO_DEPLOY_PATH` | абсолютный путь к клону, например `/opt/mandate-allocation-calculator` |
-
-На сервере у пользователя из `DO_USER` должны быть права на `docker compose` в этом каталоге и доступ к `git pull`.
-
-Workflow (`.github/workflows/deploy.yml`) при push в **`master`** или **`main`** выполняет: `cd $DO_DEPLOY_PATH` → `git pull --ff-only` → `docker compose build` → `docker compose up -d`.
-
-**Важно:** изменения должны быть **запушены** в GitHub; иначе на дроплете останется старый `git pull`.
-
-### Отдельная машина целиком под этот сайт (редко)
-
-Имеет смысл **только** если у вас **отдельный** дроплет или VM, где **кроме** этого проекта на **80/443** ничего не должно слушать (ни общий nginx, ни другой сайт на том же IP). Тогда можно опубликовать Caddy на `0.0.0.0:80` (в `.env`: `CADDY_PUBLISH=0.0.0.0:80`), при необходимости пробросить **443** в `docker-compose.yml` и выдать сертификат **внутри Caddy** (`DOMAIN=electoral-calc.org`).  
-
-**Если на том же дроплете уже что-то работает на 80/443** — этот вариант не подходит: останьтесь на чеклисте выше (**127.0.0.1:9080** + nginx `proxy_pass`), иначе получите конфликт портов или сломаете соседние сервисы.
+Expected column names (case-insensitive, aliases supported): `ctr`, `yr`, `cst` (required), `pv1`, `vv1`, optionally `mn`, `dy`, `pty_n`/`pty`, `seat`, `tm`, `ctr_n`.
 
 ---
 
-## Справочник выборов (ParlGov + DuckDB)
+## Electoral system summaries
 
-На странице **`/reference`** загружаются CSV **ParlGov** (национальные выборы в парламент, EU и большинство OECD), в **DuckDB** строится локальная база **`parlgov.duckdb`** (в Docker том **`./data/parlgov`** — данные переживают перезапуск контейнера). Можно выбрать страну (или **все страны**), фильтр по **источнику** (ParlGov / CLEA), отфильтровать выборы **по датам и тексту**, затем **открыть состав в калькуляторе** (доли перенормируются к 100%). Юридический **порог** в ParlGov не выделен — задаётся вручную; для CLEA порог подставляется из CSV, если колонка найдена.
+The **Electoral System** tab in the election detail shows a 2–3 sentence summary of the country's electoral system in the current language (EN / RU), plus a link to the source law if available.
 
-- Первый запуск backend после деплоя может **скачать два больших CSV** (однократно в каталог `PARLGOV_DATA_DIR`, по умолчанию в образе `/app/data/parlgov`).  
-- Атрибуция: Döring, Quaas, Hesse, Manow — *Parliaments and governments database (ParlGov)*, [parlgov.org](https://www.parlgov.org/).
+**Pre-generated summaries** for all ~46 threshold countries are bundled in `backend/app/bundled_summaries.json` and served out-of-the-box without any API key.
 
-### CLEA (окружной уровень → агрегат в DuckDB)
+**User-generated summaries** (via the "Generate summary" button in the UI) call the Anthropic API with a key the user supplies in the modal. They are stored in `PARLGOV_DATA_DIR/country_summaries.json` and override the bundled ones per country.
 
-Опционально: положите **один UTF-8 CSV** с окружными строками (как в [CLEA](https://electiondataarchive.org/)) и задайте **`CLEA_CSV_PATH`** или **`CLEA_DATA_DIR`** (см. `.env.example`). Backend в **DuckDB** посчитает по стране/году/месяцу/дню:
+### Batch-generate summaries
 
-- сумму **действительных голосов** по стране (через `vv1` по округу без двойного счёта);
-- **доли и оценку голосов** по партиям (`pv1`);
-- **сумму мест по округам** по партии, если в файле есть колонка мест (`seat` и алиасы);
-- **порог**, если есть колонка вроде `tm` / `threshold` (значение 0–1 трактуется как доля и переводится в %).
+To pre-generate summaries for all countries at once (hitting the live API):
 
-Итоговые таблицы сохраняются в отдельный файл **`clea_aggregated.duckdb`** в каталоге **`CLEA_DATA_DIR`** (или путь **`CLEA_DUCKDB_PATH`**). В **`parlgov.duckdb`** при пересборке создаётся таблица **`ref_party_election`** (ParlGov + CLEA в одной схеме для списка и скачивания): CLEA подключается к тому же процессу только **через ATTACH READ_ONLY**, без второй записи в `parlgov.duckdb` (иначе возможен падёж нативного DuckDB). На `/reference` — **единый** список выборов и кнопка скачать справочник (**`GET /api/reference/duckdb`**); при необходимости по-прежнему **`GET /api/reference/clea/duckdb`**.
+```bash
+python3 generate_all_summaries.py --api-key sk-ant-...
+# or against a local instance:
+python3 generate_all_summaries.py --api-key sk-ant-... --base-url http://localhost:8000
+```
 
-Ожидаемые имена колонок (регистр не важен; есть **алиасы**): `ctr`, `yr`, обязательно **`cst`** (округ), **`pv1`**, **`vv1`**, опционально `mn`, `dy`, `pty_n` или `pty`, `seat`, `tm`, `ctr_n`.
+Skips countries that already have a summary. Use `--force` to regenerate all.
 
-## Деплой на DigitalOcean + GitHub Actions (кратко)
+### Electoral laws database (optional)
 
-См. раздел **«Продакшен: electoral-calc.org»** выше: клон, `.env`, `docker compose`, nginx, certbot, секреты Actions.
+`electoral_laws.py` in the repo root scrapes electoral law URLs from GLOBALCIT, ACE Project, and IFES into a local **SQLite** file (`electoral.db`). When `ELECTORAL_DB_PATH` points to this file in production, the summary generator can fetch and extract law text to give Claude better context.
 
-## API
+```bash
+python3 electoral_laws.py          # run scraper, creates/updates electoral.db
+python3 electoral_laws.py --help   # options
+```
 
-- `GET /api/health` — проверка живости  
-- `POST /api/calculate` — JSON с партиями и настройками  
-- `POST /api/export.xlsx?lang=ru|en` — выгрузка таблицы в Excel  
-- `GET /api/reference/status` — JSON `{ parlgov: {...}, clea: {...} }`  
-- `POST /api/reference/refresh?force=false` — проверить обновления ParlGov (HEAD) и CLEA (mtime CSV); при `force=true` перекаать без сравнения дат  
-- `GET /api/reference/countries` — список стран  
-- `GET /api/reference/elections?country_id=&date_from=&date_to=&q=&limit=&offset=` — выборы только ParlGov (страна опциональна)  
-- `GET /api/reference/unified-elections?...&source=parlgov|clea` — **единый** список (таблица `ref_party_election`)  
-- `GET /api/reference/duckdb` — скачать `parlgov.duckdb` (в заголовке часто имя `reference.duckdb`)  
-- `GET /api/reference/election/{id}` — партии и метаданные  
-- `GET /api/reference/election/{id}/prefill?threshold_percent=` — JSON для предзаполнения калькулятора  
-- `GET /api/reference/clea/status` — наличие CSV и путь к агрегированному DuckDB  
-- `GET /api/reference/clea/elections?date_from=&date_to=&q=&limit=&offset=` — список выборов из CLEA  
-- `GET /api/reference/clea/detail?election_key=` — состав по партиям (как у ParlGov)  
-- `GET /api/reference/clea/prefill?election_key=&threshold_percent=` — предзаполнение (порог из файла, если не передан)  
-- `GET /api/reference/clea/duckdb` — скачать файл `clea_aggregated.duckdb`  
+Without `electoral.db` the system degrades gracefully: summaries are generated from country name only.
 
-Схемы см. в `backend/app/main.py` и `backend/app/reference_api.py`.
+---
+
+## API reference
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/health` | liveness check |
+| POST | `/api/calculate` | seat allocation for given parties and settings |
+| POST | `/api/export.xlsx?lang=ru\|en` | Excel export |
+| GET | `/api/reference/status` | `{ parlgov: {...}, clea: {...} }` |
+| POST | `/api/reference/refresh?force=false` | check ParlGov (HEAD) and CLEA (mtime); rebuild if updated |
+| GET | `/api/reference/countries` | list of countries |
+| GET | `/api/reference/unified-elections` | combined ParlGov + CLEA list (`ref_party_election`) |
+| GET | `/api/reference/elections` | ParlGov-only list |
+| GET | `/api/reference/election/{id}` | parties and metadata |
+| GET | `/api/reference/election/{id}/prefill` | calculator prefill JSON |
+| GET | `/api/reference/duckdb` | download `reference.duckdb` |
+| GET | `/api/reference/summaries` | all stored electoral-system summaries |
+| POST | `/api/reference/generate-summary` | generate summary for one country via Claude API |
+| GET | `/api/reference/clea/status` | CLEA CSV presence and aggregated DuckDB path |
+| GET | `/api/reference/clea/elections` | CLEA-only election list |
+| GET | `/api/reference/clea/detail` | CLEA party breakdown |
+| GET | `/api/reference/clea/prefill` | CLEA calculator prefill |
+| GET | `/api/reference/clea/duckdb` | download `clea_aggregated.duckdb` |
+
+Full schemas in `backend/app/main.py` and `backend/app/reference_api.py`.
+
+---
+
+## Data sources
+
+- **ParlGov** — Döring, Quaas, Hesse, Manow — *Parliaments and governments database*, [parlgov.org](https://www.parlgov.org/). CC-BY-SA. Covers 800+ parliamentary elections across ~40 democracies.
+- **CLEA** — Constituency-Level Elections Archive, [electiondataarchive.org](https://electiondataarchive.org/). Constituency-level data aggregated by country.
+- **Electoral thresholds** — compiled from constitutions and electoral laws; verify before citing.
+- **Electoral system summaries** — generated via Claude (Anthropic); bundled summaries based on established academic knowledge of electoral systems.
+
+---
 
 ## Legacy Streamlit
 
@@ -215,4 +216,4 @@ pip install -r legacy/requirements-streamlit.txt
 streamlit run legacy/streamlit_app.py
 ```
 
-Запускайте из корня репозитория, чтобы находился `parties.json` (если используется).
+Run from the repo root so `parties.json` is found if used.
