@@ -213,8 +213,7 @@ main.shell-main {
 .ref-inline-detail-cell {
   border-top: none !important;
   padding: 0 !important;
-  max-width: 0;
-  overflow: hidden;
+  white-space: normal;
 }
 
 .ref-inline-detail {
